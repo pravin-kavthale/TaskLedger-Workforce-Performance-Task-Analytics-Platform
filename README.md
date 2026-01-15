@@ -52,10 +52,15 @@ pip install -e .
 ### Starting the API Server
 
 ```bash
-python -m taskledger.api
+python run_api.py
 ```
 
 The API server will start on `http://localhost:5000`
+
+**Security Note**: By default, debug mode is disabled for security. To enable debug mode for development:
+```bash
+FLASK_DEBUG=true python run_api.py
+```
 
 ### Generating Sample Data
 
