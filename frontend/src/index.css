@@ -27,3 +27,15 @@ code {
 
 .animate-trace-right { animation: trace-right 1.5s linear infinite; }
 .animate-trace-left { animation: trace-left 1.5s linear infinite; }
+
+
+@keyframes trace-right {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes trace-left {
+  0% { transform: translateX(300%); }
+  100% { transform: translateX(-100%); }
+}
+.animate-trace-right { animation: trace-right 2s linear infinite; }
+.animate-trace-left { animation: trace-left 2s linear infinite; }
