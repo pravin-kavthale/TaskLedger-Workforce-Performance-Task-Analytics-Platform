@@ -14,3 +14,16 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@keyframes trace-right {
+  from { left: -100%; }
+  to { left: 100%; }
+}
+
+@keyframes trace-left {
+  from { right: -100%; }
+  to { right: 100%; }
+}
+
+.animate-trace-right { animation: trace-right 1.5s linear infinite; }
+.animate-trace-left { animation: trace-left 1.5s linear infinite; }
