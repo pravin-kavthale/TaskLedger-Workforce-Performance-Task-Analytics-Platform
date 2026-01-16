@@ -70,25 +70,37 @@ Backend implementation will be developed incrementally using a clean, scalable d
 
 ## 🔗 Entity Relationships (Overview)
 
-- A **User** can have multiple **Roles**
-- A **User** owns exactly one **Profile**
-- A **Profile** belongs to a **Department**
-- A **Project** belongs to a **Department** and is managed by a **User**
-- **Projects** contain multiple **Tasks**
-- **Tasks** are assigned to **Users**
-- **TaskEvents** track task lifecycle actions
-- **ActivityLogs** capture system-level actions for auditing
+- A **User** can have multiple **Roles**  
+- A **User** owns exactly one **Profile**  
+- A **Profile** belongs to a **Department**  
+- A **Project** belongs to a **Department** and is managed by a **User**  
+- **Projects** contain multiple **Tasks**  
+- **Tasks** are assigned to **Users**  
+- **TaskEvents** track task lifecycle actions  
+- **ActivityLogs** capture system-level actions for auditing  
+
+---
+
+## 🖼️ Diagrams
+
+### ER Diagram
+![ER Diagram](Documents/ER%20diagram.png)  
+*Relational schema showing PK/FK relationships across all modules.*
+
+### Module Diagram
+![Module Diagram](Documents/Module%20Diagram.png)  
+*High-level module interactions between frontend, backend, and database components.*
 
 ---
 
 ## 🎨 Branding & UI Direction
 
-- **Logo:** Minimal, professional, productivity-focused
-- **Primary Theme:** Blue-based palette (trust, structure, analytics)
-- **Homepage Design:**
-  - Product introduction
-  - Feature highlights
-  - Login call-to-action
+- **Logo:** Minimal, professional, productivity-focused  
+- **Primary Theme:** Blue-based palette (trust, structure, analytics)  
+- **Homepage Design:**  
+  - Product introduction  
+  - Feature highlights  
+  - Login call-to-action  
 
 UI prototyping is handled using **Figma** with AI-assisted design tools.
 
@@ -102,8 +114,8 @@ UI prototyping is handled using **Figma** with AI-assisted design tools.
 - ✔ Homepage design planned  
 
 **Next Phase**
-- Backend development (Django)
-- API design & implementation
+- Backend development (Django)  
+- API design & implementation  
 - Frontend implementation (React)
 
 ---
@@ -128,11 +140,11 @@ Features are added **only when they are properly designed, justified, and scalab
 
 ## 📌 Roadmap (High-Level)
 
-1. Backend core setup & authentication
-2. Task & event tracking APIs
-3. Analytics data modeling
-4. Frontend dashboard integration
-5. Performance metrics & reporting
+1. Backend core setup & authentication  
+2. Task & event tracking APIs  
+3. Analytics data modeling  
+4. Frontend dashboard integration  
+5. Performance metrics & reporting  
 
 ---
 
