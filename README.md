@@ -84,7 +84,7 @@ Backend implementation will be developed incrementally using a clean, scalable d
 ## 🖼️ Diagrams
 
 ### ER Diagram
-![ER Diagram](Documents/ER%20Diagram.png)  
+![ER Diagram](Documents/ER%20diagram.png)  
 *Relational schema showing PK/FK relationships across all modules.*
 
 ### Module Diagram
