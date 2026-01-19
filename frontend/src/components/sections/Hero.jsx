@@ -25,9 +25,24 @@ function Hero() {
           </div>
         </div>
 
-        <div className="hidden lg:block w-full max-w-[320px] justify-self-end">
-          <div className="border border-white/10 rounded-2xl bg-white/[0.02] backdrop-blur-xl h-[180px] flex items-center justify-center border-dashed">
-            <span className="text-gray-600 text-[8px] tracking-widest uppercase">Dashboard Interface</span>
+        <div className="hidden lg:block w-full max-w-[450px] justify-self-end">
+          <div className="relative transform hover:scale-105 transition-transform duration-500">
+            <img 
+              src="/Home_Dashboard.png" 
+              alt="Dashboard Interface" 
+              className="w-full h-auto drop-shadow-[0_20px_50px_rgba(79,209,197,0.2)] animate-pulse-slow"
+              style={{
+                animation: 'float 6s ease-in-out infinite'
+              }}
+            />
+            {/* Inline style for the float effect since we only change this div */}
+            <style>{`
+              @keyframes float {
+                0% { transform: translateY(0px) rotateX(0deg); }
+                50% { transform: translateY(-20px) rotateX(2deg); }
+                100% { transform: translateY(0px) rotateX(0deg); }
+              }
+            `}</style>
           </div>
         </div>
       </div>
@@ -36,3 +51,4 @@ function Hero() {
 }
 
 export default Hero;
+
