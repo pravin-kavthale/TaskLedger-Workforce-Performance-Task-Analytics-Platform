@@ -1,37 +1,21 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import AboutHero from '../components/about/AboutHero';
-import AboutMission from '../components/about/AboutMissions';
+import AboutMissions from '../components/about/AboutMissions';
 
 const About = () => {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   return (
-    /* h-screen + overflow-hidden makes it a single non-scrollable page */
-    <main className="h-screen bg-[#1a1f26] flex flex-col overflow-hidden selection:bg-[#4fd1c5]/30">
-      
-      {/* Content Container: flex-1 allows these to fill the space perfectly */}
-      <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24">
-        <AboutHero />
-        
-        {/* Subtle thin separator to match your style */}
-        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-4"></div>
-        
-        <AboutMission />
-      </div>
+    <main className="relative min-h-screen w-full bg-[#0a0f12] text-white px-8 md:px-16 lg:px-24 overflow-hidden selection:bg-[#4fd1c5]/30">
 
-      {/* Tighter Bottom CTA to save vertical space */}
-      <footer className="pb-10 px-8 text-center">
-        <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
-          <h2 className="text-lg font-bold text-white mb-3">
-            Ready to build a more accountable team?
-          </h2>
-          <button className="bg-[#4fd1c5] text-[#1a1f26] px-8 py-2.5 rounded-full font-black uppercase text-[10px] transition-transform hover:scale-105">
-            Initialize TaskLedger
-          </button>
-        </div>
-      </footer>
+      {/* PRIMARY AMBIENT LIGHT (SAME AS HOME) */}
+      <div className="absolute top-0 left-[-10%] w-[700px] h-[700px] bg-[#4fd1c5]/10 blur-[140px] rounded-full pointer-events-none" />
+
+      {/* SECONDARY DEPTH LIGHT */}
+      <div className="absolute top-[45%] right-[-10%] w-[500px] h-[500px] bg-[#22d3ee]/5 blur-[160px] rounded-full pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col gap-28 py-28">
+        <AboutHero />
+        <AboutMissions />
+      </div>
     </main>
   );
 };
