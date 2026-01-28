@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, UserCheck, BarChart3, MoveRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Step = ({ icon: Icon, label }) => (
   <div className="flex flex-col items-center group">
@@ -11,10 +12,12 @@ const Step = ({ icon: Icon, label }) => (
 );
 
 function WhySection() {
+
+  const navigate = useNavigate();
+
   return (
     <section className="bg-transparent pt-6 pb-8 px-8 md:px-16 lg:px-24 border-t border-white/5">
       <div className="max-w-7xl mx-auto">
-        {/* restored Why Heading */}
         <div className="mb-6 flex flex-col items-start">
           <h2 className="text-white font-black text-lg uppercase tracking-[0.3em] leading-none">Why TaskLedger?</h2>
           <div className="w-16 h-[3px] bg-[#22d3ee] mt-2 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
@@ -31,7 +34,9 @@ function WhySection() {
 
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-center lg:items-end gap-3">
-              <button className="px-10 py-2 rounded-full font-black text-[10px] uppercase tracking-widest text-[#1a1f26] bg-[#22d3ee] shadow-[0_0_20px_rgba(34,211,238,0.3)] active:scale-95 transition-all">
+              <button 
+                onClick={() => navigate('/login')}
+                className="px-10 py-2 rounded-full font-black text-[10px] uppercase tracking-widest text-[#1a1f26] bg-[#22d3ee] shadow-[0_0_20px_rgba(34,211,238,0.3)] active:scale-95 transition-all">
                 Login
               </button>
             </div>

@@ -1,6 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Hero() {
+
+  const navigate = useNavigate();
+
   return (
     <section className="relative bg-transparent pt-6 pb-2 px-8 md:px-16 lg:px-24 z-10">
       <div className="absolute top-0 left-[-5%] w-[400px] h-[400px] bg-[#4fd1c5]/10 blur-[100px] rounded-full pointer-events-none"></div>
@@ -16,7 +20,9 @@ function Hero() {
             A streamlined project management engine designed for teams valuing transparency and real-time tracking.
           </p>
           <div className="mt-6 flex gap-4">
-            <button className="bg-[#4fd1c5] text-[#1a1f26] px-8 py-2.5 rounded-full font-black text-xs uppercase transition-all shadow-xl shadow-teal-500/20 active:scale-95">
+            <button 
+              onClick={() => navigate('/login')}
+              className="bg-[#4fd1c5] text-[#1a1f26] px-8 py-2.5 rounded-full font-black text-xs uppercase transition-all shadow-xl shadow-teal-500/20 active:scale-95">
               Get Started Now
             </button>
             <button className="border border-[#22d3ee]/30 text-white px-8 py-2.5 rounded-full font-bold text-xs uppercase bg-white/5 backdrop-blur-sm">
