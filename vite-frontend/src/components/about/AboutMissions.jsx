@@ -25,14 +25,12 @@ const MissionNode = ({ text }) => (
 export default function AboutMissions() {
   return (
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-      
-      {/* LEFT SIDE */}
+
       <div className="space-y-10">
         <h2 className="text-3xl font-bold tracking-tight">Our Mission</h2>
 
         <div className="relative flex items-center min-h-[220px]">
-          
-          {/* SVG – DESKTOP ONLY */}
+
           <svg
             className="absolute left-0 top-1/2 -translate-y-1/2 w-56 h-56 pointer-events-none hidden lg:block"
             viewBox="0 0 100 100"
@@ -58,7 +56,6 @@ export default function AboutMissions() {
         </div>
       </div>
 
-      {/* RIGHT SIDE */}
       <div className="space-y-14">
         <div>
           <h2 className="text-3xl font-bold mb-4 tracking-tight">

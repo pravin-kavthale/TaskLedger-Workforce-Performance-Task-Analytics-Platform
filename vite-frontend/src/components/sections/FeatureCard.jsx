@@ -3,7 +3,7 @@ import { Workflow, ShieldCheck, ListTodo, Zap } from 'lucide-react';
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="relative bg-white/[0.03] border border-white/10 p-5 rounded-2xl transition-all duration-500 group overflow-hidden hover:bg-white/[0.05] hover:border-[#22d3ee]/30">
-    {/* restored Hover Tracing Lines */}
+
     <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#22d3ee] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
       <div className="absolute inset-0 w-1/3 h-full bg-[#22d3ee] shadow-[0_0_15px_#22d3ee] animate-trace-right"></div>
     </div>
@@ -17,7 +17,6 @@ const FeatureCard = ({ icon: Icon, title, description }) => (
       <h3 className="text-white text-sm font-bold mb-1 tracking-tight">{title}</h3>
       <p className="text-gray-400 text-[10px] leading-relaxed font-light">{description}</p>
     </div>
-    {/* restored Inner Glow */}
     <div className="absolute -inset-24 bg-[#22d3ee]/5 blur-[40px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
   </div>
 );

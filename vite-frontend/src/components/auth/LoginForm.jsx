@@ -53,7 +53,6 @@ export default function LoginForm() {
               type="password"
               placeholder="••••••••"
             />
-            {/* IN-LINE RESET LINK */}
             <div className="absolute top-0 right-1">
               <button type="button" className="text-[9px] font-bold text-[#22d3ee]/50 hover:text-[#22d3ee] uppercase tracking-tighter transition-colors">
                 Lost Key?
@@ -61,7 +60,6 @@ export default function LoginForm() {
             </div>
           </div>
 
-          {/* AUTHORIZE BUTTON */}
           <button 
             type="submit"
             className="w-full bg-[#4fd1c5] text-[#0a0f12] py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_30px_rgba(79,209,197,0.3)] hover:scale-[1.01] active:scale-95 mt-6"
@@ -70,7 +68,6 @@ export default function LoginForm() {
           </button>
         </form>
 
-        {/* FOOTER LINKS */}
         <div className="mt-8 text-center">
           <p className="text-[11px] text-gray-600 font-medium">
             No identity found? {' '}

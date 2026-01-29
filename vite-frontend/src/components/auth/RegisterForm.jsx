@@ -14,20 +14,17 @@ export default function RegisterForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Provisioning Node with Data:", formData);
-    // Logic to insert into User and Profile tables based on ER diagram
   };
 
   return (
     <div className="relative w-full max-w-xl px-6 py-12">
-      {/* THE GLASS CARD */}
+
       <div className="bg-[#161b22]/40 border border-white/10 rounded-[2.5rem] p-8 md:p-12 backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
-        
-        {/* ANIMATED TRACE LINE (From your index.css) */}
+
         <div className="absolute top-0 left-0 w-full h-[1.5px] overflow-hidden">
           <div className="w-1/3 h-full bg-gradient-to-r from-transparent via-[#22d3ee] to-transparent animate-trace-right relative"></div>
         </div>
 
-        {/* HEADER */}
         <div className="mb-10 text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#22d3ee]/10 border border-[#22d3ee]/20 mb-4">
             <UserPlus size={14} className="text-[#22d3ee]" />
@@ -39,7 +36,6 @@ export default function RegisterForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* TWO COLUMN GRID FOR LARGE SCREENS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <NeonInput 
               label="Node Identity"
@@ -85,7 +81,6 @@ export default function RegisterForm() {
             />
           </div>
 
-          {/* SUBMIT ACTION */}
           <div className="pt-4">
             <button 
               type="submit"
@@ -96,7 +91,6 @@ export default function RegisterForm() {
           </div>
         </form>
 
-        {/* FOOTER */}
         <div className="mt-8 pt-6 border-t border-white/5 text-center">
           <p className="text-[11px] text-gray-500 font-medium">
             Node already registered? {' '}
