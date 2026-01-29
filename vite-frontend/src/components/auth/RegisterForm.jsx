@@ -68,36 +68,35 @@ export default function RegisterForm() {
             onChange={(e) => setFormData({...formData, department: e.target.value})}
           />
 
-          {/* ROLE ASSIGNMENT SECTION */}
+          {/* ROLE ASSIGNMENT SECTION (NEW) */}
           <div className="space-y-2 group">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1 transition-colors group-focus-within:text-[#4fd1c5]">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1 transition-colors group-focus-within:text-[#22d3ee]">
               Role Assignment
             </label>
-            
+
             <div className="relative">
-              {/* ICON: Now turns Skyblue on focus */}
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-600 group-focus-within:text-[#4fd1c5] transition-colors duration-300">
+              {/* ICON: Matches NeonInput placement */}
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-600 group-focus-within:text-[#22d3ee] transition-colors duration-300">
                 <ShieldCheck size={18} strokeWidth={1.5} />
               </div>
               
-              {/* THE SELECT: High-Tech Skyblue styling */}
+              {/* THE SELECT: Matches NeonInput styling exactly */}
               <select 
                 value={formData.role}
                 disabled={currentUserRole === "MANAGER"}
                 onChange={(e) => setFormData({...formData, role: e.target.value})}
                 className="w-full bg-[#0a0f12]/60 border border-white/5 text-white pl-12 pr-10 py-4 rounded-2xl text-sm outline-none transition-all duration-300 cursor-pointer
-                          appearance-none 
-                          focus:border-[#4fd1c5]/50 focus:bg-[#0a0f12] focus:ring-4 focus:ring-[#4fd1c5]/10 
-                          group-hover:border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            appearance-none 
+                            focus:border-[#22d3ee]/40 focus:bg-[#0a0f12] focus:ring-4 focus:ring-[#22d3ee]/5 
+                            group-hover:border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {/* Options styled for dark-mode compatibility */}
-                <option value="ADMIN" className="bg-[#161b22] text-white">ADMIN</option>
-                <option value="MANAGER" className="bg-[#161b22] text-white">MANAGER</option>
-                <option value="EMPLOYEE" className="bg-[#161b22] text-white">EMPLOYEE</option>
+                <option value="ADMIN" className="bg-[#161b22]">ADMIN</option>
+                <option value="MANAGER" className="bg-[#161b22]">MANAGER</option>
+                <option value="EMPLOYEE" className="bg-[#161b22]">EMPLOYEE</option>
               </select>
 
-              {/* RIGHT ACCESSORY: Chevron or Lock */}
-              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-600 group-focus-within:text-[#4fd1c5] transition-colors duration-300">
+              {/* RIGHT ACCESSORY: Lock or Chevron */}
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-600 group-focus-within:text-[#22d3ee] transition-colors duration-300">
                 {currentUserRole === "MANAGER" ? (
                   <Lock size={16} className="opacity-50" />
                 ) : (
@@ -105,15 +104,15 @@ export default function RegisterForm() {
                 )}
               </div>
 
-              {/* SKYBLUE BOTTOM GLOW LINE: Matches your heading's primary accent */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-[#4fd1c5] transition-all duration-500 group-focus-within:w-1/2 opacity-70 shadow-[0_0_12px_#4fd1c5]"></div>
+              {/* BOTTOM GLOW LINE: Identical to NeonInput.jsx */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-[#22d3ee] transition-all duration-500 group-focus-within:w-1/2 opacity-50 shadow-[0_0_8px_#22d3ee]"></div>
             </div>
 
             <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest ml-1">
               {currentUserRole === "ADMIN" ? "Available roles depend on your permissions" : "⚠️ Role locked to Managerial hierarchy"}
             </p>
           </div>
-          
+
           {/* PASSWORDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <NeonInput 
