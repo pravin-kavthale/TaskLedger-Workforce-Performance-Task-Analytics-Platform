@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, Lock, ArrowRight, Shield } from 'lucide-react';
-import NeonInput from './NeonInput'; // Adjust path based on your folder structure
+import NeonInput from './NeonInput';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginForm() {
   
@@ -8,6 +9,8 @@ export default function LoginForm() {
     e.preventDefault();
     // Logic for authorization goes here
   };
+
+  const navigate = useNavigate();
 
   return (
     <div className="relative w-full max-w-[420px] px-6">
@@ -71,7 +74,9 @@ export default function LoginForm() {
         <div className="mt-8 text-center">
           <p className="text-[11px] text-gray-600 font-medium">
             No identity found? {' '}
-            <button className="text-white font-bold hover:text-[#22d3ee] transition-colors uppercase tracking-tighter">
+            <button 
+            onClick={() => navigate('/signup')}
+            className="text-white font-bold hover:text-[#22d3ee] transition-colors uppercase tracking-tighter">
               Create New Node
             </button>
           </p>

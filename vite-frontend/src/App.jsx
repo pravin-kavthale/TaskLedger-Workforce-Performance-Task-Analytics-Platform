@@ -5,6 +5,7 @@ import Navbar from './components/sections/Navbar';
 import Home from './pages/Home';
 import About from './pages/About';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 function AppContent() {
   const location = useLocation();
@@ -22,6 +23,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Register />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
