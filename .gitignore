@@ -12,3 +12,7 @@ db.sqlite3
 node_modules/
 build/
 .env
+
+# Keys and Certificates
+backend/keys/
+*.pem

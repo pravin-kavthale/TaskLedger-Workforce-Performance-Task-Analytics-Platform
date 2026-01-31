@@ -5,6 +5,9 @@ Django settings for TaskLedger backend project.
 from pathlib import Path
 import environ
 import os
+from datetime import timedelta
+
+
 
 # ---------------------------
 # BASE DIRECTORY
@@ -134,3 +137,40 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CUSTOM USER Authentication Model 
 # ----------------------------------
 AUTH_USER_MODEL = "accounts.User"
+
+
+# ---------------------------
+# REST FRAMEWORK CONFIGURATION and JWT Authentication
+# ---------------------------
+REST_FRAMEWORK={
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+
+# ---------------------------
+# SIMPLE JWT CONFIGURATION
+# ---------------------------
+SIMPLE_JWT = {
+    'ALGORITHM': 'RS256',
+
+    'SIGNING_KEY': open(BASE_DIR / 'keys/private.pem').read(),
+    'VERIFYING_KEY': open(BASE_DIR / 'keys/public.pem').read(),
+
+    'ACCESS_TOKEN_LIFETIME' : timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME' : timedelta(days=1),
+
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    
+}
+
