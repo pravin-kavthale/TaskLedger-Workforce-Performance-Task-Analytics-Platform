@@ -1,16 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, Shield } from 'lucide-react';
 import NeonInput from './NeonInput';
 import { useNavigate } from 'react-router-dom';
+import { login, setTokens } from '../../api/auth';
 
 export default function LoginForm() {
-  
-  const handleLogin = (e) => {
-    e.preventDefault();
-    // Logic for authorization goes here
-  };
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const { access, refresh } = await login(email, password);
+      setTokens(access, refresh);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Invalid credentials');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative w-full max-w-[420px] px-6">
@@ -38,12 +53,19 @@ export default function LoginForm() {
 
         {/* FORM SECTION */}
         <form onSubmit={handleLogin} className="space-y-5">
-          
+          {error && (
+            <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2">
+              {error}
+            </div>
+          )}
+
           <NeonInput 
             label="Identity"
             icon={Mail}
             type="email"
             placeholder="user@taskledger.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
           <div className="relative">
@@ -52,6 +74,8 @@ export default function LoginForm() {
               icon={Lock}
               type="password"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
             <div className="absolute top-0 right-1">
               <button type="button" className="text-[9px] font-bold text-[#22d3ee]/50 hover:text-[#22d3ee] uppercase tracking-tighter transition-colors">
@@ -62,9 +86,10 @@ export default function LoginForm() {
 
           <button 
             type="submit"
-            className="w-full bg-[#4fd1c5] text-[#0a0f12] py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_30px_rgba(79,209,197,0.3)] hover:scale-[1.01] active:scale-95 mt-6"
+            disabled={loading}
+            className="w-full bg-[#4fd1c5] text-[#0a0f12] py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_30px_rgba(79,209,197,0.3)] hover:scale-[1.01] active:scale-95 mt-6 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            Authorize <ArrowRight size={16} />
+            {loading ? 'Authorizing...' : 'Authorize'} <ArrowRight size={16} />
           </button>
         </form>
 
