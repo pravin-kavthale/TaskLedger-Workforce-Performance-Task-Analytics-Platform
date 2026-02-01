@@ -158,38 +158,7 @@ The API uses **JWT (JSON Web Tokens)** for stateless authentication. Session-bas
 7. **Logout & invalidation** — Client discards the access token. If refresh token rotation with blacklist is enabled, the last-used refresh token is already invalid after a refresh; for explicit logout, call a logout endpoint that blacklists the current refresh token so it cannot be reused.
 
 ### JWT Authentication Flow Diagram
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant AuthAPI as Auth API
-    participant ProtectedAPI as Protected API
-
-    Note over Client,AuthAPI: Login
-    Client->>+AuthAPI: POST /api/auth/login/ { email, password }
-    AuthAPI->>AuthAPI: Validate credentials
-    AuthAPI-->>-Client: 200 { access, refresh }
-
-    Note over Client: Store access (e.g. memory); refresh (HTTP-only cookie / secure storage)
-
-    Note over Client,ProtectedAPI: Access protected resource
-    Client->>+ProtectedAPI: GET /resource/ Authorization: Bearer <access>
-    ProtectedAPI->>ProtectedAPI: Verify JWT, check expiry
-    alt Valid access token
-        ProtectedAPI-->>-Client: 200 + response
-    else Access token expired
-        ProtectedAPI-->>Client: 401 Unauthorized
-        Client->>+AuthAPI: POST /api/auth/refresh/ { refresh }
-        AuthAPI->>AuthAPI: Validate refresh, rotate (optional blacklist)
-        AuthAPI-->>-Client: 200 { access [, refresh] }
-        Client->>+ProtectedAPI: GET /resource/ Authorization: Bearer <new access>
-        ProtectedAPI-->>-Client: 200 + response
-    end
-
-    Note over Client,AuthAPI: Logout (optional)
-    Client->>AuthAPI: Discard tokens; optional: POST /logout/ to blacklist refresh
-```
-
+![ER Diagram](Documents/JWT_Auth_Flow.png)  
 ### Role-Based Access Control (RBAC)
 
 Roles (`ADMIN`, `MANAGER`, `EMPLOYEE`) are stored on the user model and **embedded in JWT claims** at login via a custom token serializer. The backend does not rely only on the token’s role claim for critical decisions: the authenticated user is loaded from the database (by `user_id` from the token), so role changes take effect after the next login or token refresh.
