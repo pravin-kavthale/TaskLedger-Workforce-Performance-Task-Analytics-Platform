@@ -6,7 +6,7 @@ from rest_framework.response import Response # type: ignore
 from rest_framework.permissions import IsAuthenticated # type: ignore
 
 from .permissions import IsAdmin, IsAdminOrManager
-from .serializers import CreateUserSerializer
+from .serializers import CreateUserSerializer, CurrentUserSerializer
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -22,6 +22,14 @@ class ProtectedTestView(APIView):
             "username": request.user.username,
             "role": request.user.role
         })
+
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = CurrentUserSerializer(request.user, context={'request': request})
+        return Response(serializer.data)
 
 class CreateUserView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrManager]

@@ -16,6 +16,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
 
+class CurrentUserSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'role', 'avatar_url']
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
+
+
 class CreateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model=User
