@@ -138,6 +138,76 @@ Features are added **only when they are properly designed, justified, and scalab
 
 ---
 
+## Authentication & Authorization (JWT)
+
+The API uses **JWT (JSON Web Tokens)** for stateless authentication. Session-based auth is avoided so the backend does not store server-side session state, which simplifies horizontal scaling, works cleanly with multiple clients (web, mobile, programmatic), and avoids cookie/CSRF concerns for API-only consumers.
+
+- **Access token:** Short-lived credential for authorizing requests. Carried in the `Authorization: Bearer <token>` header.
+- **Refresh token:** Long-lived credential used only to obtain a new access token. Not sent with every request; used only against the refresh endpoint.
+
+**Token format & strategy:** Tokens are signed with **RS256** (asymmetric: private key for signing, public key for verification). Access tokens expire in **15 minutes**; refresh tokens in **1 day**. Custom claims include `user_id`, `role`, `username`, and `email` so protected endpoints can authorize without extra DB lookups. Security considerations: tokens are opaque to the client (no sensitive data in payload beyond identifiers and role), HTTPS is required in production, and refresh tokens are rotated on use with optional blacklisting to limit reuse.
+
+### Authentication Flow (Step-by-Step)
+
+1. **Login request** — Client sends `POST /api/auth/login/` with `email` and `password` (JSON).
+2. **Credential validation** — Backend validates against the user model (email as `USERNAME_FIELD`). Invalid credentials return 401.
+3. **JWT issuance** — On success, backend returns JSON: `access` and `refresh` tokens (and optionally user payload). Access token contains standard claims plus custom claims (e.g. `role`, `user_id`).
+4. **Client-side token storage** — Store the access token in memory or a short-lived, secure store for attaching to requests. Store the refresh token in **HTTP-only, Secure, SameSite cookies** (or another secure storage such as secure storage on mobile) so it is not exposed to JavaScript. Never put refresh tokens in `localStorage` if the app is exposed to XSS.
+5. **Protected API requests** — Client sends `Authorization: Bearer <access_token>` on each request to protected endpoints. The backend validates the JWT signature and expiry and loads the user from the token claims.
+6. **Token refresh** — When the access token expires (e.g. 401 response), client calls `POST /api/auth/refresh/` with the refresh token (in body or cookie). Backend returns a new access token (and, if rotation is enabled, a new refresh token). Old refresh token is invalidated/blacklisted after rotation.
+7. **Logout & invalidation** — Client discards the access token. If refresh token rotation with blacklist is enabled, the last-used refresh token is already invalid after a refresh; for explicit logout, call a logout endpoint that blacklists the current refresh token so it cannot be reused.
+
+### JWT Authentication Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthAPI as Auth API
+    participant ProtectedAPI as Protected API
+
+    Note over Client,AuthAPI: Login
+    Client->>+AuthAPI: POST /api/auth/login/ { email, password }
+    AuthAPI->>AuthAPI: Validate credentials
+    AuthAPI-->>-Client: 200 { access, refresh }
+
+    Note over Client: Store access (e.g. memory); refresh (HTTP-only cookie / secure storage)
+
+    Note over Client,ProtectedAPI: Access protected resource
+    Client->>+ProtectedAPI: GET /resource/ Authorization: Bearer <access>
+    ProtectedAPI->>ProtectedAPI: Verify JWT, check expiry
+    alt Valid access token
+        ProtectedAPI-->>-Client: 200 + response
+    else Access token expired
+        ProtectedAPI-->>Client: 401 Unauthorized
+        Client->>+AuthAPI: POST /api/auth/refresh/ { refresh }
+        AuthAPI->>AuthAPI: Validate refresh, rotate (optional blacklist)
+        AuthAPI-->>-Client: 200 { access [, refresh] }
+        Client->>+ProtectedAPI: GET /resource/ Authorization: Bearer <new access>
+        ProtectedAPI-->>-Client: 200 + response
+    end
+
+    Note over Client,AuthAPI: Logout (optional)
+    Client->>AuthAPI: Discard tokens; optional: POST /logout/ to blacklist refresh
+```
+
+### Role-Based Access Control (RBAC)
+
+Roles (`ADMIN`, `MANAGER`, `EMPLOYEE`) are stored on the user model and **embedded in JWT claims** at login via a custom token serializer. The backend does not rely only on the token’s role claim for critical decisions: the authenticated user is loaded from the database (by `user_id` from the token), so role changes take effect after the next login or token refresh.
+
+Permission enforcement is done with **DRF permission classes** (e.g. `IsAuthenticated`, custom `IsAdmin`, `IsAdminOrManager`) attached to views. These classes read `request.user.role` (the user instance attached by JWT authentication) and allow or deny access. Middleware is not used for role checks; all role-based authorization is view-level permission checks.
+
+- **ADMIN** — Full access to admin-only views (e.g. user creation with any role).
+- **MANAGER** — Access to manager and employee-level views (e.g. create users with EMPLOYEE role).
+- **EMPLOYEE** — Access only to views that require `IsAuthenticated` or employee-specific permissions.
+
+### Security Notes
+
+- **Token expiration:** Short-lived access tokens (15 min) limit the window of misuse if a token is leaked. Refresh tokens (1 day) are used only at the refresh endpoint.
+- **Refresh token rotation:** When rotation is enabled, each refresh returns a new refresh token and the previous one is invalidated. Optionally, the old refresh token is blacklisted so it cannot be reused. This limits damage from refresh token theft.
+- **Protection against token theft:** Rely on HTTPS everywhere; store refresh tokens in HTTP-only (and Secure, SameSite) cookies where possible; avoid exposing refresh tokens to scriptable storage. Rotate and blacklist refresh tokens so a single stolen refresh token has limited use.
+
+---
+
 ## 📌 Roadmap (High-Level)
 
 1. Backend core setup & authentication  
