@@ -44,3 +44,18 @@ export function clearTokens() {
   localStorage.removeItem(AUTH_KEYS.ACCESS);
   localStorage.removeItem(AUTH_KEYS.REFRESH);
 }
+
+// Default avatar 
+export const DEFAULT_AVATAR_URL = '/avatars/user_avatar.webp';
+
+// Fetch current user 
+export async function getMe() {
+  const token = getAccessToken();
+  if (!token) return null;
+  const res = await fetch(`${API_BASE_URL}/auth/me/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data;
+}
