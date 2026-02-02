@@ -19,7 +19,7 @@ export default function LoginForm() {
     try {
       const { access, refresh } = await login(email, password);
       setTokens(access, refresh);
-      navigate('/');
+      navigate('/app');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
     } finally {
