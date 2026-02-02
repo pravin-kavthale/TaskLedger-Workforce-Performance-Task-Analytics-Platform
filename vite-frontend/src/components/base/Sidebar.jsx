@@ -10,16 +10,29 @@ import {
   User,
   LogOut,
   Menu,
+  UserPlus
 } from 'lucide-react';
 
 const navItems = [
+  // --- CORE / GLOBAL ---
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/my-tasks', label: 'My Tasks', icon: ListTodo },
-  { to: '/app/team-tasks', label: 'Team Tasks', icon: Users },
-  { to: '/app/reports', label: 'Reports', icon: FileBarChart },
   { to: '/app/activity', label: 'Activity Log', icon: Activity },
   { to: '/app/profile', label: 'Profile', icon: User },
+
+  // --- MANAGER ---
+  { to: '/app/team-tasks', label: 'Team Tasks', icon: Users },
+  { to: '/app/reports', label: 'Reports', icon: FileBarChart },
+
+  // --- ADMIN ---
+  { to: '/app/users', label: 'Users', icon: Users },
+  { to: '/app/structure', label: 'Departments / Projects', icon: LayoutDashboard },
+  { to: '/app/audit-log', label: 'Audit Log', icon: Activity },
+
+  // --- NAVBAR / SYSTEM ACTIONS (temporary routes for now) ---
+  { to: '/signup', label: 'Add User', icon: UserPlus },
 ];
+
 
 export default function Sidebar() {
   const location = useLocation();
