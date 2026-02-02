@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import logo from '../../assets/logo.png';
 import { Bell, Search, MoreVertical } from 'lucide-react';
-import { getAccessToken, getMe, DEFAULT_AVATAR_URL } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { DEFAULT_AVATAR_URL } from '../../api/auth';
 
 function formatDateTime() {
   const now = new Date();
@@ -18,25 +19,8 @@ function formatDateTime() {
 }
 
 export default function Navbar() {
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [dateTime, setDateTime] = useState(formatDateTime());
-
-  useEffect(() => {
-    const isLoggedIn = !!getAccessToken();
-    if (!isLoggedIn) {
-      setUser(null);
-      return;
-    }
-    let cancelled = false;
-    getMe()
-      .then((data) => {
-        if (!cancelled) setUser(data);
-      })
-      .catch(() => {
-        if (!cancelled) setUser(null);
-      });
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setDateTime(formatDateTime()), 1000);

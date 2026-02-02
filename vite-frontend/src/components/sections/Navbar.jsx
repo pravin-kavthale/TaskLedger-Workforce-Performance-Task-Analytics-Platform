@@ -1,38 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import logoJpg from '../../assets/logo.png';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAccessToken, getMe, clearTokens, DEFAULT_AVATAR_URL } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { DEFAULT_AVATAR_URL } from '../../api/auth';
 
 function Navbar() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const isLoggedIn = !!getAccessToken();
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    getMe()
-      .then((data) => {
-        if (!cancelled) setUser(data);
-      })
-      .catch(() => {
-        if (!cancelled) setUser(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [isLoggedIn]);
+  const { user, isAuthenticated, loading, logout } = useAuth();
 
   const handleLogout = () => {
-    clearTokens();
-    setUser(null);
+    logout();
     navigate('/login');
   };
 
@@ -59,7 +36,7 @@ function Navbar() {
       </div>
 
       <div className="flex items-center gap-5">
-        {loading && isLoggedIn ? (
+        {loading && isAuthenticated ? (
           <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
         ) : user ? (
           <div className="flex items-center gap-3">

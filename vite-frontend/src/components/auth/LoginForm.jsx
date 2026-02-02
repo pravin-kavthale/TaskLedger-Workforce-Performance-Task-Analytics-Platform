@@ -2,28 +2,24 @@ import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, Shield } from 'lucide-react';
 import NeonInput from './NeonInput';
 import { useNavigate } from 'react-router-dom';
-import { login, setTokens } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login, loading } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
     try {
-      const { access, refresh } = await login(email, password);
-      setTokens(access, refresh);
+      await login(email, password);
       navigate('/app');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -89,7 +85,7 @@ export default function LoginForm() {
             disabled={loading}
             className="w-full bg-[#4fd1c5] text-[#0a0f12] py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_30px_rgba(79,209,197,0.3)] hover:scale-[1.01] active:scale-95 mt-6 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            {loading ? 'Authorizing...' : 'Authorize'} <ArrowRight size={16} />
+            {loading ? 'Authorizing...' : 'Authorize'} {!loading && <ArrowRight size={16} />}
           </button>
         </form>
 

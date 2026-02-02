@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { clearTokens } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   LayoutDashboard,
   ListTodo,
@@ -24,9 +24,10 @@ const navItems = [
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    clearTokens();
+    logout();
     navigate('/login');
   };
 
