@@ -51,3 +51,26 @@ code {
 }
 .animate-trace-right { animation: trace-right 2s linear infinite; }
 .animate-trace-left { animation: trace-left 2s linear infinite; }
+
+/* Sidebar: sky blue neon light moving along the border only (gradient angle animates, sidebar stays fixed) */
+@property --sidebar-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes sidebar-border-light {
+  to { --sidebar-angle: 360deg; }
+}
+
+.sidebar-border-animate {
+  --sidebar-angle: 0deg;
+  background: conic-gradient(
+    from var(--sidebar-angle) at 50% 50%,
+    transparent 0deg 60deg,
+    rgba(34, 211, 238, 0.95) 75deg 105deg,
+    rgba(34, 211, 238, 0.5) 110deg 130deg,
+    transparent 160deg 360deg
+  );
+  animation: sidebar-border-light 3s linear infinite;
+}
