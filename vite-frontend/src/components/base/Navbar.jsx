@@ -53,7 +53,6 @@ export default function Navbar() {
       {/* Logo */}
       <div className="flex items-center gap-3 shrink-0">
         <img src={logo} alt="TaskLedger" className="h-10 w-auto object-contain" />
-        <span className="text-lg font-semibold text-white hidden sm:inline">TaskLedger</span>
       </div>
 
       {/* Search */}
@@ -75,7 +74,7 @@ export default function Navbar() {
       <div className="flex items-center gap-3 shrink-0">
         <button
           type="button"
-          className="relative p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+          className="relative p-2 rounded-lg text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors hover:shadow-[0_0_12px_rgba(34,211,238,0.4)]"
           aria-label="Notifications"
         >
           <Bell size={20} />
