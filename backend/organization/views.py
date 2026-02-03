@@ -10,6 +10,7 @@ class DepartmentViewSet(
     mixins.ListModelMixin,    # GET /departments/
     mixins.RetrieveModelMixin,# GET /departments/{id}/
     mixins.CreateModelMixin,  # POST /departments/
+    mixins.UpdateModelMixin, # PATCH /departments/{id}/
     viewsets.GenericViewSet
 ):
     serializer_class = DepartmentSerializer
@@ -28,7 +29,6 @@ class DepartmentViewSet(
         return super().partial_update(request, *args, **kwargs)
     
     # Disable PUT and DELETE methods
-    def update(self, request, *args, **kwargs):
-        raise MethodNotAllowed(request.method, detail="Full update is not allowed. Use PATCH to update 'is_active' only.")
+    
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
