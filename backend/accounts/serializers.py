@@ -1,6 +1,7 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import User
+from .services import can_assign_role
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = "email"
@@ -15,6 +16,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email
 
         return token
+
+class BaseUserRoleValidationMixin:
+    def validate_role(self, value):
+        request_user = self.context['request'].user
+        if not can_assign_role(request_user, value):
+            raise serializers.ValidationError("You cannot assign this role")
+        return value
 
 class CurrentUserSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
@@ -31,24 +39,34 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             return obj.avatar.url
         return None
 
-
-class CreateUserSerializer(serializers.ModelSerializer):
+class CreateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSerializer):
     class Meta:
-        model=User
-        fields=['id','username','email','role','password']
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'password']
         extra_kwargs = {"password": {"write_only": True}}
 
-    def vaidate_role(self,value):
-        request_user = self.context['request'].user
-        if request_user.role == User.Role.ADMIN:
-            return value
-
-        if request_user.role == User.Role.MANAGER and value == User.Role.EMPLOYEE:
-            return value
-
-            
-        raise serializers.ValidationError("You cannot assign this role")
-            
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data,created_by=self.context['request'].user)
-        return user
+        return User.objects.create_user(
+            **validated_data,
+            created_by=self.context['request'].user
+        )
+    
+
+class UpdateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'role', 'is_active', 'avatar']
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+class DeleteUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = []
+    def delete(self, instance):
+        instance.delete()
+        
