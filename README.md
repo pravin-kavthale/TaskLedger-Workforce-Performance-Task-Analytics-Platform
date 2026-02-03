@@ -10,11 +10,11 @@ This repository currently contains:
 - Finalized **system architecture & ER design**
 - Branding and UI direction
 - Planned frontend and backend module structure
+- **Implemented backend APIs for Department management** (list, create, retrieve, and toggle `is_active`)
 
 Backend implementation will be developed incrementally using a clean, scalable design approach.
 
 ---
-
 ## 🎯 Core Objectives
 
 - Centralized task and project management  
@@ -33,9 +33,10 @@ Backend implementation will be developed incrementally using a clean, scalable d
 - Dashboard UI (future scope)
 
 ### Backend
-- Django + Django REST Framework (planned)
+- Django + Django REST Framework
 - Modular app-based architecture
 - Event-driven task tracking
+- **Department API implemented with JWT + RBAC**  
 
 ### Database
 - Relational schema with strict PK/FK relationships
@@ -43,25 +44,29 @@ Backend implementation will be developed incrementally using a clean, scalable d
 
 ---
 
-## 🗂️ Finalized Core Modules
+## 🗂️ Core Modules & Current Status
 
-### User & Access Control
+### ✅ User & Access Control
 - User  
 - Role  
-- UserRole  
 - Profile  
+- JWT-based authentication with refresh token rotation
 
-### Organization Structure
-- Department  
-- Project  
-- ProjectMember  
+### ✅ Organization Structure
+- Department (fully implemented APIs)
+  - List departments
+  - Create department
+  - Retrieve department by ID
+  - Patch `is_active` to deactivate a department (PUT & DELETE disabled)
+- Project (planned)
+- ProjectMember (planned)
 
-### Task & Activity Tracking
+### ⚠️ Task & Activity Tracking (Planned)
 - Task  
 - TaskEvent  
 - ActivityLog  
 
-### Analytics (Planned)
+### ⚠️ Analytics (Planned)
 - Event-based aggregation
 - Project productivity metrics
 - Department and employee performance insights
@@ -81,63 +86,30 @@ Backend implementation will be developed incrementally using a clean, scalable d
 
 ---
 
-## 🖼️ Diagrams
+## 🌐 GitHub Integration (Planned)
 
-### ER Diagram
-![ER Diagram](Documents/ER%20diagram.png)  
-*Relational schema showing PK/FK relationships across all modules.*
-
-### Module Diagram
-![Module Diagram](Documents/Module%20Diagram.png)  
-*High-level module interactions between frontend, backend, and database components.*
-
----
-
-## 🎨 Branding & UI Direction
-
-- **Logo:** Minimal, professional, productivity-focused  
-- **Primary Theme:** Blue-based palette (trust, structure, analytics)  
-- **Homepage Design:**  
-  - Product introduction  
-  - Feature highlights  
-  - Login call-to-action  
-
-UI prototyping is handled using **Figma** with AI-assisted design tools.
+- Each user can **connect their GitHub account** to TaskLedger  
+- OAuth-based authentication flow:
+  1. User clicks “Connect GitHub” → redirected to GitHub OAuth consent page  
+  2. GitHub returns a `code` → exchanged for an access token  
+  3. Token stored securely in backend, associated with user  
+- Scopes:
+  - `repo` → access to private/public repos  
+  - `read:user` → read GitHub profile  
+  - `read:org` → read organization data if analyzing org contributions  
+- Contributions will be calculated from **repos created by the organization**, including private repos  
+- **Current development stage:** only the “Connect GitHub” view and token exchange logic are implemented  
 
 ---
 
-## 🚧 Current Project Status
-
-- ✔ Architecture finalized  
-- ✔ ER diagram completed  
-- ✔ Branding & logo finalized  
-- ✔ Homepage design planned  
-
-**Next Phase**
-- Backend development (Django)  
-- API design & implementation  
-- Frontend implementation (React)
-
----
-
-## ⚠️ Scope & Intent
-
-This project is developed as a **serious portfolio / SaaS-style system**, not a tutorial or demo clone.
-
-Features are added **only when they are properly designed, justified, and scalable**.
-
----
-
-## 🛠️ Planned Tech Stack
+## 🛠️ Tech Stack
 
 - **Backend:** Django, Django REST Framework  
 - **Database:** PostgreSQL  
 - **Frontend:** React  
 - **Authentication:** JWT + Role-Based Access Control  
-- **Design:** Figma, AI-assisted branding tools  
-
+- **Design:** Figma, AI-assisted branding tools
 ---
-
 ## Authentication & Authorization (JWT)
 
 The API uses **JWT (JSON Web Tokens)** for stateless authentication. Session-based auth is avoided so the backend does not store server-side session state, which simplifies horizontal scaling, works cleanly with multiple clients (web, mobile, programmatic), and avoids cookie/CSRF concerns for API-only consumers.
@@ -177,13 +149,47 @@ Permission enforcement is done with **DRF permission classes** (e.g. `IsAuthenti
 
 ---
 
+## 🖼️ Diagrams
+
+### ER Diagram
+![ER Diagram](Documents/ER%20diagram.png)  
+*Relational schema showing PK/FK relationships across all modules.*
+
+### Module Diagram
+![Module Diagram](Documents/Module%20Diagram.png)  
+*High-level module interactions between frontend, backend, and database components.*
+
+---
+
+## 🎨 Branding & UI Direction
+
+- **Logo:** Minimal, professional, productivity-focused  
+- **Primary Theme:** Blue-based palette (trust, structure, analytics)  
+- **Homepage Design:**  
+  - Product introduction  
+  - Feature highlights  
+  - Login call-to-action  
+
+UI prototyping is handled using **Figma** with AI-assisted design tools.
+
+---
+
 ## 📌 Roadmap (High-Level)
 
-1. Backend core setup & authentication  
-2. Task & event tracking APIs  
-3. Analytics data modeling  
-4. Frontend dashboard integration  
-5. Performance metrics & reporting  
+1. Backend core setup & authentication ✅  
+2. Department API implementation ✅  
+3. Task & event tracking APIs ⚠️  
+4. GitHub integration (token exchange view implemented, contribution calculation planned) ⚠️  
+5. Analytics & performance metrics ⚠️  
+6. Frontend dashboard integration ⚠️  
+
+---
+
+## ⚠️ Scope & Intent
+
+This project is developed as a **serious portfolio / SaaS-style system**, not a tutorial or demo clone.
+
+Features are added **only when they are properly designed, justified, and scalable**.
 
 ---
 
