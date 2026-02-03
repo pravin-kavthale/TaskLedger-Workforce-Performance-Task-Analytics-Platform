@@ -14,7 +14,7 @@ let currentAccessToken = null;
 
 // login function
 export async function login(email, password) {
-  const res = await fetch(`${API_BASE_URL}/auth/login/`, {
+  const res = await fetch(`${API_BASE_URL}/accounts/auth/login/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -80,7 +80,7 @@ export async function refreshAccessToken() {
   // Prevent multiple simultaneous refresh attempts
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/refresh/`, {
+      const res = await fetch(`${API_BASE_URL}/accounts/auth/refresh/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),
@@ -122,7 +122,7 @@ export async function getMe() {
   }
 
   // Make initial request
-  let res = await fetch(`${API_BASE_URL}/auth/me/`, {
+  let res = await fetch(`${API_BASE_URL}/accounts/auth/me/`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -132,7 +132,7 @@ export async function getMe() {
     try {
       const newAccessToken = await refreshAccessToken();
       // Retry with new token
-      res = await fetch(`${API_BASE_URL}/auth/me/`, {
+      res = await fetch(`${API_BASE_URL}/accounts/auth/me/`, {
         headers: { Authorization: `Bearer ${newAccessToken}` },
       });
       // Update current token tracking

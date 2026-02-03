@@ -48,6 +48,10 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'rest_framework',
     'accounts',
+    'organization',
+    'analytics',
+    'audit',
+    'work',   
 ]
 
 MIDDLEWARE = [
