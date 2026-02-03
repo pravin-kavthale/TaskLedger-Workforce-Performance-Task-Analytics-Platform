@@ -38,17 +38,17 @@ class CreateUserSerializer(serializers.ModelSerializer):
         fields=['id','username','email','role','password']
         extra_kwargs = {"password": {"write_only": True}}
 
-        def vaidate_role(self,value):
-            request_user = self.context['request'].user
-            if request_user.role == User.Role.ADMIN:
-                return value
+    def vaidate_role(self,value):
+        request_user = self.context['request'].user
+        if request_user.role == User.Role.ADMIN:
+            return value
 
-            if request_user.role == User.Role.MANAGER and value == User.Role.EMPLOYEE:
-                return value
+        if request_user.role == User.Role.MANAGER and value == User.Role.EMPLOYEE:
+            return value
 
             
-            raise serializers.ValidationError("You cannot assign this role")
+        raise serializers.ValidationError("You cannot assign this role")
             
-        def create(self, validated_data):
-            user = User.objects.create_user(**validated_data,created_by=self.context['request'].user)
-            return user
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data,created_by=self.context['request'].user)
+        return user

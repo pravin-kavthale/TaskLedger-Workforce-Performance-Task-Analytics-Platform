@@ -13,5 +13,8 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', CurrentUserView.as_view(), name='current_user'),
     path('auth/protected/', ProtectedTestView.as_view(), name='protected_test'),
-    path('auth/create-user/', CreateUserView.as_view(), name='create_user'),
+
+
+    
+    path('users/', CreateUserView.as_view(), name='create_user'),
 ]
