@@ -45,5 +45,6 @@ class CreateUserView(APIView):
         return Response({
             "message": "User created successfully",
             "user_id": user.id,
-            "role": user.role
+            "role": user.role,
+            "created_by": user.created_by.id if user.created_by else None
         })
