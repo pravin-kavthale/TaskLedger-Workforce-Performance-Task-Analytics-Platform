@@ -14,7 +14,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['user_id'] = user.id
         token['username'] = user.username
         token['email'] = user.email
-
         return token
 
 class BaseUserRoleValidationMixin:

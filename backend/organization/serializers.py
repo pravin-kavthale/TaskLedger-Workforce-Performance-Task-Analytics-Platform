@@ -18,3 +18,4 @@ class DepartmentSerializer(serializers.ModelSerializer):
         department = Department.objects.create(**validated_data)
         return department
         
+    

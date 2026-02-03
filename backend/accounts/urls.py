@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 
 
-from .views import CreateUserView, CustomTokenObtainPairView, ProtectedTestView, CurrentUserView
+from .views import CreateUserView, CustomTokenObtainPairView, ProtectedTestView, CurrentUserView, UserDetailView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -17,4 +17,6 @@ urlpatterns = [
 
     
     path('users/', CreateUserView.as_view(), name='create_user'),
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail')
+
 ]

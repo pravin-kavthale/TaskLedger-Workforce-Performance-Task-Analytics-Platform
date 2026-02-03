@@ -47,49 +47,69 @@ class CreateUserView(APIView):
             "user_id": user.id,
             "role": user.role,
             "created_by": user.created_by.id if user.created_by else None
-        })
+        },status=201)
 
-class UpdateUserView(APIView):
+class UserDetailView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrManager]
 
-    def put(self, request, user_id):
-         
+    def patch(self, request, pk):
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(pk=pk)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=404)
+
+        # Managers can only modify EMPLOYEEs
+        if (
+            request.user.role == User.Role.MANAGER
+            and user.role != User.Role.EMPLOYEE
+        ):
+            return Response(
+                {"error": "Managers can only manage employees"},
+                status=403
+            )
+
         serializer = UpdateUserSerializer(
             user,
             data=request.data,
             context={"request": request},
-            partial=True # Allows PATCH-like behavior
+            partial=True
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Return minimal user info after update
-        return Response({
-            "user_id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
-            "is_active": user.is_active
-        }, status=200)
+        return Response(
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "is_active": user.is_active,
+            },
+            status=200
+        )
 
-
-class DeleteUserView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
-
-    def delete(self, request, user_id):
+    def delete(self, request, pk):
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(pk=pk)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=404)
 
-        # Optional safety: prevent admin from deleting themselves
+        # Prevent self-delete
         if request.user.id == user.id:
-            return Response({"error": "You cannot delete yourself"}, status=400)
+            return Response(
+                {"error": "You cannot delete yourself"},
+                status=400
+            )
+
+        # Managers cannot delete admins or other managers
+        if (
+            request.user.role == User.Role.MANAGER
+            and user.role != User.Role.EMPLOYEE
+        ):
+            return Response(
+                {"error": "Managers can only delete employees"},
+                status=403
+            )
 
         user.delete()
-        # Return 204 No Content as per REST convention
         return Response(status=204)
