@@ -67,11 +67,15 @@ class UpdateUserView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
+        # Return minimal user info after update
         return Response({
-            "message": "User updated successfully",
             "user_id": user.id,
-            "role": user.role
-        })
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active
+        }, status=200)
+
 
 class DeleteUserView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
