@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated # type: ignore
 from .permissions import IsAdmin, IsAdminOrManager
 from .serializers import CreateUserSerializer, CurrentUserSerializer, UpdateUserSerializer, UserReadSerializer
 from .models import User 
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
