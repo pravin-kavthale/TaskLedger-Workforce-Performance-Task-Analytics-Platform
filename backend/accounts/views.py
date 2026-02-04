@@ -1,12 +1,12 @@
 from django.shortcuts import render
 from rest_framework_simplejwt.views import TokenObtainPairView # type: ignore
-from .serializers import CustomTokenObtainPairSerializer
+from .serializers import CustomTokenObtainPairSerializer, UserReadSerializer
 from rest_framework.views import APIView # type: ignore
 from rest_framework.response import Response # type: ignore
 from rest_framework.permissions import IsAuthenticated # type: ignore
 
 from .permissions import IsAdmin, IsAdminOrManager
-from .serializers import CreateUserSerializer, CurrentUserSerializer, UpdateUserSerializer
+from .serializers import CreateUserSerializer, CurrentUserSerializer, UpdateUserSerializer, UserReadSerializer
 from .models import User 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -33,20 +33,6 @@ class CurrentUserView(APIView):
 
 class CreateUserView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrManager]
-
-    def get(self, request):
-        users = User.objects.all()
-
-        # Managers can only see EMPLOYEEs
-        if request.user.role == User.Role.MANAGER or request.user.role == User.Role.MANAGER:
-            users = users.filter(role=User.Role.EMPLOYEE)
-
-        serializer = CurrentUserSerializer(
-            users,
-            many=True,
-            context={"request": request}
-        )
-        return Response(serializer.data)
     
     def post(self, request):
         serializer = CreateUserSerializer(
@@ -65,6 +51,28 @@ class CreateUserView(APIView):
 
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrManager]
+
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=404
+            )
+
+        # Managers can only view EMPLOYEEs
+        if (
+            request.user.role == User.Role.MANAGER
+            and user.role != User.Role.EMPLOYEE
+        ):
+            return Response(
+                {"error": "Managers can only view employees"},
+                status=403
+            )
+
+        serializer = UserReadSerializer(user)   
+        return Response(serializer.data, status=200)
 
     def patch(self, request, pk):
         try:

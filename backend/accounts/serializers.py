@@ -1,3 +1,4 @@
+from requests import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import User
@@ -68,4 +69,9 @@ class DeleteUserSerializer(serializers.ModelSerializer):
         fields = []
     def delete(self, instance):
         instance.delete()
+        
+class UserReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'is_active']
         
