@@ -46,3 +46,57 @@ class Project(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+class Assignment(models.Model):
+    class Role(models.TextChoices):
+        PROJECT_MANAGER = "PROJECT_MANAGER", "Project Manager"
+        TECH_LEAD = "TECH_LEAD", "Tech Lead"
+        PRODUCT_OWNER = "PRODUCT_OWNER", "Product Owner"
+
+        SOFTWARE_ENGINEER = "SOFTWARE_ENGINEER", "Software Engineer"
+        BACKEND_ENGINEER = "BACKEND_ENGINEER", "Backend Engineer"
+        FRONTEND_ENGINEER = "FRONTEND_ENGINEER", "Frontend Engineer"
+        DATA_ENGINEER = "DATA_ENGINEER", "Data Engineer"
+        ML_ENGINEER = "ML_ENGINEER", "ML Engineer"
+        DEVOPS_ENGINEER = "DEVOPS_ENGINEER", "DevOps Engineer"
+
+        QA_ENGINEER = "QA_ENGINEER", "QA Engineer"
+        QA_LEAD = "QA_LEAD", "QA Lead"
+        SECURITY_ENGINEER = "SECURITY_ENGINEER", "Security Engineer"
+
+        UI_UX_DESIGNER = "UI_UX_DESIGNER", "UI/UX Designer"
+        BUSINESS_ANALYST = "BUSINESS_ANALYST", "Business Analyst"
+
+        SYSTEM_ADMIN = "SYSTEM_ADMIN", "System Administrator"
+        SUPPORT_ENGINEER = "SUPPORT_ENGINEER", "Support Engineer"
+        INTERN = "INTERN", "Intern"
+        CONSULTANT = "CONSULTANT", "Consultant"
+
+    project = models.ForeignKey('work.Project',on_delete=models.CASCADE,related_name='assignments')
+    user = models.ForeignKey('accounts.User',on_delete=models.CASCADE,related_name='assignments')
+    role = models.CharField(max_length=30, choices=Role.choices)
+
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    unassigned_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'user'],
+                condition=models.Q(is_active=True),
+                name='unique_active_assignment_per_user_per_project'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['project', 'is_active']),
+            models.Index(fields=['user', 'is_active']),
+        ]
+
+    def clean(self):
+        if not self.is_active and not self.unassigned_at:
+            raise ValidationError(
+                "Inactive assignments must have unassigned_at set."
+            )
+
+    def __str__(self):
+        return f"{self.user} → {self.project} ({self.role})"
