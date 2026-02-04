@@ -29,7 +29,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'role', 'avatar_url']
+        fields = ['id', 'email', 'username', 'role', 'avatar_url','department']
 
     def get_avatar_url(self, obj):
         if obj.avatar:
@@ -42,7 +42,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
 class CreateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'password']
+        fields = ['id', 'username', 'email', 'role', 'password','department']
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
@@ -55,7 +55,7 @@ class CreateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSeriali
 class UpdateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'role', 'is_active', 'avatar']
+        fields = ['username', 'email', 'role', 'is_active', 'avatar','department']
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -73,5 +73,5 @@ class DeleteUserSerializer(serializers.ModelSerializer):
 class UserReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'is_active']
+        fields = ['id', 'username', 'email', 'role', 'is_active','department']
         
