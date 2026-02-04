@@ -33,6 +33,20 @@ class CurrentUserView(APIView):
 
 class CreateUserView(APIView):
     permission_classes = [IsAuthenticated, IsAdminOrManager]
+
+    def get(self, request):
+        users = User.objects.all()
+
+        # Managers can only see EMPLOYEEs
+        if request.user.role == User.Role.MANAGER or request.user.role == User.Role.MANAGER:
+            users = users.filter(role=User.Role.EMPLOYEE)
+
+        serializer = CurrentUserSerializer(
+            users,
+            many=True,
+            context={"request": request}
+        )
+        return Response(serializer.data)
     
     def post(self, request):
         serializer = CreateUserSerializer(
