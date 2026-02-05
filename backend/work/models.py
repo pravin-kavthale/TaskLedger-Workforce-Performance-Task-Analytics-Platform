@@ -46,6 +46,10 @@ class Project(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 class Assignment(models.Model):
     class Role(models.TextChoices):
         PROJECT_MANAGER = "PROJECT_MANAGER", "Project Manager"
@@ -100,3 +104,10 @@ class Assignment(models.Model):
 
     def __str__(self):
         return f"{self.user} → {self.project} ({self.role})"
+
+
+    def save(self, *args, **kwargs):
+        if self.unassigned_at and self.is_active:
+            self.is_active = False
+        self.full_clean()
+        super().save(*args, **kwargs)
