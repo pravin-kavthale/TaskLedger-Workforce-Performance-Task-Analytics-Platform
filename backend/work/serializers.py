@@ -1,11 +1,7 @@
 from rest_framework import serializers
 
-from backend.accounts.models import User
-from .models import Project
-from .permissions import CanManageProject
-from accounts.permissions import IsAdminOrManager, IsAdmin  
 
-
+from .models import Project 
 from rest_framework import serializers
 from .models import Project
 

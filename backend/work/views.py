@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, mixins
 from . models import Project
 from . serializers import ProjectSerializer
-from . permissions import CanCreateProject, CanManageProject, CanUpdateProject
+from . permissions import CanCreateProject, CanUpdateProject
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from accounts.models import User
@@ -10,10 +10,10 @@ from rest_framework.permissions import IsAuthenticated
 
 
 class ProjectViewSet(
-    mixins.ListModelMixin,    # GET /projects/
-    mixins.RetrieveModelMixin,# GET /projects/{id}/
+    mixins.ListModelMixin,    # GET /projects/                    
+    mixins.RetrieveModelMixin,# GET /projects/{id}/                
     mixins.CreateModelMixin,  # POST /projects/
-    mixins.UpdateModelMixin, # PATCH /projects/{id}/
+    mixins.UpdateModelMixin,  # PATCH /projects/{id}/
     viewsets.GenericViewSet
 ):
     serializer_class = ProjectSerializer
@@ -23,6 +23,9 @@ class ProjectViewSet(
     def get_queryset(self):
         user = self.request.user
 
+        if not user.is_authenticated:
+            return Project.objects.none()
+
         if user.role == User.Role.ADMIN:
             return Project.objects.all()
 
@@ -30,6 +33,7 @@ class ProjectViewSet(
             return Project.objects.filter(manager=user)
 
         return Project.objects.none()
+
 
     def get_permissions(self):
         if self.action == "create":
@@ -46,3 +50,4 @@ class ProjectViewSet(
     
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
+
