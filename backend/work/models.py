@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 # Create your models here.
 
@@ -79,35 +80,38 @@ class Assignment(models.Model):
     user = models.ForeignKey('accounts.User',on_delete=models.CASCADE,related_name='assignments')
     role = models.CharField(max_length=30, choices=Role.choices)
 
+    assigned_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='assignments_made')
     assigned_at = models.DateTimeField(auto_now_add=True)
     unassigned_at = models.DateTimeField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
+    
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['project', 'user'],
-                condition=models.Q(is_active=True),
+                condition=models.Q(unassigned_at__isnull=True),
                 name='unique_active_assignment_per_user_per_project'
             )
         ]
-        indexes = [
-            models.Index(fields=['project', 'is_active']),
-            models.Index(fields=['user', 'is_active']),
-        ]
+        
 
-    def clean(self):
-        if not self.is_active and not self.unassigned_at:
-            raise ValidationError(
-                "Inactive assignments must have unassigned_at set."
-            )
+        indexes = [
+            models.Index(
+                fields=['project'],
+                condition=Q(unassigned_at__isnull=True),
+                name='active_assignment_per_proj_idx'
+            ),
+            models.Index(
+                fields=['user'],
+                condition=Q(unassigned_at__isnull=True),
+                name='active_assignment_per_user_idx'
+            ),
+        ]
 
     def __str__(self):
         return f"{self.user} → {self.project} ({self.role})"
 
 
     def save(self, *args, **kwargs):
-        if self.unassigned_at and self.is_active:
-            self.is_active = False
         self.full_clean()
         super().save(*args, **kwargs)

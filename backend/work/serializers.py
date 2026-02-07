@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from .models import Project 
 from rest_framework import serializers
-from .models import Project
+from .models import Project, Assignment
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -13,7 +13,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'code',
-            'description',
+            'description', 
             'department',
             'manager',
             'status',
@@ -35,3 +35,21 @@ class ProjectSerializer(serializers.ModelSerializer):
         validated_data['created_by'] = self.context['request'].user
         project = Project.objects.create(**validated_data)
         return project
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assignment
+        fields = [
+            'id',
+            'project',
+            'user',
+            'role',
+            'assigned_at',
+            'unassigned_at',
+            'assigned_by',
+        ]
+        read_only_fields =[
+            'id',
+            'assigned_at',
+        ]
+    
