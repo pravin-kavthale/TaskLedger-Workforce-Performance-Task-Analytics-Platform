@@ -83,35 +83,38 @@ class Assignment(models.Model):
     assigned_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='assignments_made')
     assigned_at = models.DateTimeField(auto_now_add=True)
     unassigned_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
     
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['project', 'user'],
-                condition=models.Q(unassigned_at__isnull=True),
-                name='unique_active_assignment_per_user_per_project'
+                fields=["project", "user"],
+                condition=models.Q(is_active=True),
+                name="unique_active_assignment_per_user_per_project"
             )
         ]
-        
 
         indexes = [
             models.Index(
-                fields=['project'],
-                condition=Q(unassigned_at__isnull=True),
-                name='active_assignment_per_proj_idx'
+                fields=["project"],
+                condition=Q(is_active=True),
+                name="active_assignment_per_proj_idx",
             ),
             models.Index(
-                fields=['user'],
-                condition=Q(unassigned_at__isnull=True),
-                name='active_assignment_per_user_idx'
+                fields=["user"],
+                condition=Q(is_active=True),
+                name="active_assignment_per_user_idx",
             ),
         ]
+
 
     def __str__(self):
         return f"{self.user} → {self.project} ({self.role})"
 
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        if self.unassigned_at is not None:
+            self.is_active = False
         super().save(*args, **kwargs)

@@ -78,7 +78,7 @@ class AssignmentViewSet(
         project = serializer.validated_data["project"]
         user = self.request.user
 
-        if not CanManageProject(user, project):
+        if not CanManageProject():
             raise PermissionDenied("You cannot assign users to this project.")
 
         serializer.save(assigned_by=user)

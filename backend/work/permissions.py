@@ -24,11 +24,7 @@ class CanUpdateProject(BasePermission):
     
 
 class CanManageProject(BasePermission):
-    """
-    Admin can manage all projects.
-    Manager can manage only projects assigned to them.
-    """
-
+    
     def has_object_permission(self, request, view, obj):
         # obj is expected to be a Project instance
 
