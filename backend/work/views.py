@@ -87,7 +87,7 @@ class AssignmentViewSet(
         assignment = self.get_object()
         user = self.request.user
 
-        if not CanManageProject(user, assignment.project):
+        if not CanManageProject():
             raise PermissionDenied("You cannot modify assignments for this project.")
 
         serializer.save()

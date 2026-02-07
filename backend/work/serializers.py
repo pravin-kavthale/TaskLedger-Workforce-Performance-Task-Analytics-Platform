@@ -47,6 +47,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'assigned_at',
             'unassigned_at',
             'assigned_by',
+            'is_active',
         ]
         read_only_fields =[
             'id',
