@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, mixins
 from . models import Assignment, Project
-from . serializers import AssignmentSerializer, ProjectSerializer
+from . serializers import AssignmentSerializer, ProjectSerializer, UserProjectSerializer
 from . permissions import CanCreateProject, CanUpdateProject , CanManageProject
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -52,6 +52,7 @@ class ProjectViewSet(
     
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
+
 class AssignmentViewSet(
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
@@ -94,3 +95,19 @@ class AssignmentViewSet(
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
+    
+class UserProjectViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
+    serializer_class = UserProjectSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Assignment.objects.filter(user=user, is_active=True)
+    
+    
+    
