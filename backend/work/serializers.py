@@ -45,7 +45,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'user',
             'role',
             'assigned_at',
-            'unassigned_at',
             'assigned_by',
             'is_active',
         ]
@@ -58,7 +57,7 @@ class UserProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields=[
-            'project','role','assigned_at','unassigned_at','assigned_by','is_active'
+            'project','role','assigned_at','assigned_by','is_active'
         ]
         read_only_fields = [
             'assigned_at',

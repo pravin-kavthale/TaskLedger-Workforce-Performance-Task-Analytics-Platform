@@ -82,7 +82,6 @@ class Assignment(models.Model):
 
     assigned_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='assignments_made')
     assigned_at = models.DateTimeField(auto_now_add=True)
-    unassigned_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     
@@ -113,8 +112,3 @@ class Assignment(models.Model):
     def __str__(self):
         return f"{self.user} → {self.project} ({self.role})"
 
-
-    def save(self, *args, **kwargs):
-        if self.unassigned_at is not None:
-            self.is_active = False
-        super().save(*args, **kwargs)
