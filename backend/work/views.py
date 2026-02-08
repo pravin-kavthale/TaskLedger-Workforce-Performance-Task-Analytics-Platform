@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, mixins
 from . models import Assignment, Project
-from . serializers import AssignmentSerializer, ProjectSerializer, UserProjectSerializer
+from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, UserProjectSerializer
 from . permissions import CanCreateProject, CanUpdateProject , CanManageProject
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -95,10 +95,9 @@ class AssignmentViewSet(
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
-    
+
 class UserProjectViewSet(
     mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
 ):
     serializer_class = UserProjectSerializer
@@ -106,8 +105,47 @@ class UserProjectViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        user_pk = self.kwargs.get("user_pk")
+        requester = self.request.user
+
+        if not user_pk:
+            return Assignment.objects.none()
+
+        if requester.role != User.Role.ADMIN and requester.id != int(user_pk):
+            raise PermissionDenied("You do not have permission to view this user's projects.")
+
+        return Assignment.objects.filter(
+            user_id=user_pk,
+            is_active=True
+        ).select_related("project", "assigned_by")
+
+class ProjectMemberViewSet(
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet
+):
+    serializer_class = ProjectMemberSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        project_id = self.kwargs.get("project_id")
         user = self.request.user
-        return Assignment.objects.filter(user=user, is_active=True)
-    
-    
-    
+
+        if not project_id:
+            return Assignment.objects.none()
+
+        qs = Assignment.objects.filter(
+            project_id=project_id,
+            is_active=True
+        ).select_related("user", "assigned_by", "project")
+
+        if user.role == User.Role.ADMIN:
+            return qs
+
+        if user.role == User.Role.MANAGER:
+            if not qs.filter(project__manager_id=user.id).exists():
+                raise PermissionDenied("You are not allowed to view this project.")
+            return qs
+
+        raise PermissionDenied("You are not allowed to view project members.")
+
