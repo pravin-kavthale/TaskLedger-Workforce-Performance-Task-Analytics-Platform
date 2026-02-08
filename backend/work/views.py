@@ -118,7 +118,8 @@ class UserProjectViewSet(
             user_id=user_pk,
             is_active=True
         ).select_related("project", "assigned_by")
-
+    
+    
 class ProjectMemberViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet
@@ -128,24 +129,27 @@ class ProjectMemberViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        project_id = self.kwargs.get("project_id")
+        project_id = self.kwargs.get("project_pk")  # ✅ FIX
         user = self.request.user
 
-        if not project_id:
+        if project_id is None:
             return Assignment.objects.none()
 
-        qs = Assignment.objects.filter(
-            project_id=project_id,
-            is_active=True
-        ).select_related("user", "assigned_by", "project")
+        try:
+            project = Project.objects.only("id", "manager_id").get(id=project_id)
+        except Project.DoesNotExist:
+            return Assignment.objects.none()
 
         if user.role == User.Role.ADMIN:
-            return qs
-
-        if user.role == User.Role.MANAGER:
-            if not qs.filter(project__manager_id=user.id).exists():
+            pass
+        elif user.role == User.Role.MANAGER:
+            if project.manager_id != user.id:
                 raise PermissionDenied("You are not allowed to view this project.")
-            return qs
+        else:
+            raise PermissionDenied("You are not allowed to view project members.")
 
-        raise PermissionDenied("You are not allowed to view project members.")
-
+        return (
+            Assignment.objects
+            .filter(project_id=project_id, is_active=True)
+            .select_related("user", "assigned_by")
+        )

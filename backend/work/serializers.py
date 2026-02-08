@@ -63,9 +63,9 @@ class UserProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields = [
-            "user_id",
-            "username",
-            "email",
+            "project_id",
+            "project_name",
+            "project_code",
             "role",
             "assigned_at",
             "assigned_by",
