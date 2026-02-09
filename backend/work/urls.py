@@ -7,8 +7,6 @@ router = DefaultRouter()
 router.register(r'projects', ProjectViewSet, basename='project')
 router.register(r'assignments', AssignmentViewSet, basename='assignment')
 
-
-
 urlpatterns = [
     path('', include(router.urls)),
 
