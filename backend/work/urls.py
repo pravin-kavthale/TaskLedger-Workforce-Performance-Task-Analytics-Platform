@@ -1,6 +1,6 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import AssignmentViewSet, ProjectMemberViewSet, ProjectViewSet, UserProjectViewSet
+from .views import AssignmentViewSet, ManagerProjectViewSet, ProjectMemberViewSet, ProjectViewSet, UserProjectViewSet
 
 router = DefaultRouter()
 
@@ -14,4 +14,5 @@ urlpatterns = [
 
     path('users/<int:user_pk>/projects/',UserProjectViewSet.as_view({'get': 'list'}),name='user-projects'),
     path('projects/<int:project_pk>/members/',ProjectMemberViewSet.as_view({'get': 'list'}),name='project-members'),
+    path('managers/<int:manager_pk>/projects/', ManagerProjectViewSet.as_view({'get': 'list'}), name='manager-projects'),
 ]

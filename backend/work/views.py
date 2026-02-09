@@ -174,3 +174,27 @@ class ProjectMemberViewSet(
             .filter(project_id=project_id, is_active=is_active)
             .select_related("user", "assigned_by")
         )
+class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    serializer_class = ProjectSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user_pk = self.kwargs.get("user_pk")
+        requester = self.request.user
+
+        if not user_pk:
+            return Project.objects.none()
+
+        try:
+            user_pk = int(user_pk)
+        except ValueError:
+            return Project.objects.none()
+
+        # Only admins or the manager themselves can access
+        if requester.role == User.Role.EMPLOYEE:
+            raise PermissionDenied("Employees cannot access this endpoint.")
+        if requester.role == User.Role.MANAGER and requester.id != user_pk:
+            raise PermissionDenied("Managers can view only their own projects.")
+
+        return Project.objects.filter(manager_id=user_pk)
