@@ -112,3 +112,56 @@ class Assignment(models.Model):
     def __str__(self):
         return f"{self.user} → {self.project} ({self.role})"
 
+class Task(models.Model):
+    class Status(models.TextChoices):
+        TODO = "TODO", "To Do"
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        REVIEW = "REVIEW", "Review"
+        DONE = "DONE", "Done"
+        BLOCKED = "BLOCKED", "Blocked"
+    STATUS_ORDER = {
+        Status.TODO: 1,
+        Status.IN_PROGRESS: 2,
+        Status.REVIEW: 3,
+        Status.BLOCKED: 4,
+        Status.DONE: 5,
+    }
+    class Priority(models.IntegerChoices):
+        HIGH = 1, "High"
+        MEDIUM = 2, "Medium"
+        LOW = 3, "Low"
+        
+    
+
+    project = models.ForeignKey('work.Project', on_delete=models.CASCADE, related_name='tasks')
+    assigned_to = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='tasks_assigned')
+    title = models.CharField(max_length = 200, blank=False)
+    description = models.TextField(blank=True, null=True)
+    priority = models.PositiveSmallIntegerField(choices=Priority.choices, default=Priority.LOW)  # 1-High, 2-Medium, 3-Low
+    estimated_hours = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='tasks_created')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.TODO)
+
+    status_order = models.PositiveSmallIntegerField(
+        editable=False,
+        db_index=True
+    )
+    class Meta:
+        ordering = ['status_order', '-priority', '-created_at']
+        verbose_name = 'Task'
+        verbose_name_plural = 'Tasks'
+        
+
+        indexes = [
+        models.Index(fields=['project']),
+        models.Index(fields=['assigned_to']),
+    ]
+
+    def __str__(self):
+        return f"{self.title} ({self.project.code})"
+
+    def save(self, *args, **kwargs):
+        self.status_order = self.STATUS_ORDER[self.status]
+        super().save(*args, **kwargs)
+
