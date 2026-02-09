@@ -180,7 +180,7 @@ class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user_pk = self.kwargs.get("user_pk")
+        user_pk = self.kwargs.get("manager_pk")
         requester = self.request.user
 
         if not user_pk:
