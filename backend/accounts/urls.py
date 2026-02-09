@@ -14,8 +14,6 @@ urlpatterns = [
     path('auth/me/', CurrentUserView.as_view(), name='current_user'),
     path('auth/protected/', ProtectedTestView.as_view(), name='protected_test'),
 
-
-    
     path('users/', CreateUserView.as_view(), name='create_user'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail')
 

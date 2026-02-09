@@ -113,10 +113,19 @@ class UserProjectViewSet(
 
         if requester.role != User.Role.ADMIN and requester.id != int(user_pk):
             raise PermissionDenied("You do not have permission to view this user's projects.")
+        
+        status = self.request.query_params.get("status")
 
+        if status == "current":
+            is_active = True
+        elif status in ("history", "previous", "completed"):
+            is_active = False
+        else:
+            # Default fallback if someone sends an invalid status
+            return Assignment.objects.none()
+        
         return Assignment.objects.filter(
-            user_id=user_pk,
-            is_active=True
+            user_id=user_pk, is_active=is_active
         ).select_related("project", "assigned_by")
     
     
@@ -129,7 +138,7 @@ class ProjectMemberViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        project_id = self.kwargs.get("project_pk")  # ✅ FIX
+        project_id = self.kwargs.get("project_pk")  
         user = self.request.user
 
         if project_id is None:
@@ -148,8 +157,20 @@ class ProjectMemberViewSet(
         else:
             raise PermissionDenied("You are not allowed to view project members.")
 
+        status = self.request.query_params.get("status")
+
+        if status == "current":
+            is_active = True
+        elif status in ("history", "previous", "completed"):
+            is_active = False
+        else:
+            # Default fallback if someone sends an invalid status
+            return Assignment.objects.none()
+            
+        
+
         return (
             Assignment.objects
-            .filter(project_id=project_id, is_active=True)
+            .filter(project_id=project_id, is_active=is_active)
             .select_related("user", "assigned_by")
         )
