@@ -1,9 +1,12 @@
 from rest_framework import serializers
 
-
+from accounts.models import User
 from .models import Project 
 from rest_framework import serializers
-from .models import Project, Assignment
+from .models import Project, Assignment, Task
+from django.core.exceptions import ValidationError,PermissionDenied
+
+from .helper import is_admin, is_project_employee, is_project_manager
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -84,3 +87,130 @@ class ProjectMemberSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'assigned_at',
         ]
+
+class TaskReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = "__all__"
+        read_only_fields = [
+            'id',
+            'project',
+            'created_by',
+            'created_at',
+        ]
+
+class TaskCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = [
+            'id',
+            'title',
+            'description',
+            'priority',
+            'estimated_hours',
+            'status',
+            'assigned_to',
+        ]
+        read_only_fields = [
+            'id',
+        ]
+
+    def validate_assigned_to(self, user):
+        request = self.context["request"]
+        project_id = request.parser_context["kwargs"]["project_pk"]
+
+        if not Assignment.objects.filter(
+            project_id=project_id,
+            user=user,
+            is_active=True
+        ).exists():
+            raise serializers.ValidationError(
+                "Assignee must belong to this project."
+            )
+        return user
+        
+        
+class TaskUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = [
+            "title",
+            "description",
+            "priority",
+            "estimated_hours",
+            "status",
+            "assigned_to",
+        ]
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        user = request.user
+        task = self.instance
+        project = task.project
+
+        # ADMIN → unrestricted
+        if is_admin(user):
+            return attrs
+
+        # EMPLOYEE rules
+        if user.role == User.Role.EMPLOYEE:
+            illegal_fields = set(attrs.keys()) - {"status"}
+            if illegal_fields:
+                raise serializers.ValidationError(
+                    "Employees can only update task status."
+                )
+
+            new_status = attrs.get("status")
+
+            if task.status == Task.Status.DONE:
+                raise serializers.ValidationError(
+                    "Completed tasks are immutable."
+                )
+
+            if (
+                task.status == Task.Status.BLOCKED
+                and new_status
+                and new_status != Task.Status.BLOCKED
+            ):
+                raise serializers.ValidationError(
+                    "Only managers can unblock tasks."
+                )
+
+            return attrs
+
+        # MANAGER rules
+        if is_project_manager(user, project):
+            new_status = attrs.get("status")
+
+            if task.status == Task.Status.DONE:
+                raise serializers.ValidationError(
+                    "Completed tasks are immutable."
+                )
+
+            return attrs
+
+        # Anything else is forbidden
+        raise PermissionDenied("You do not have permission to update this task.")
+
+    def validate_assigned_to(self, new_user):
+        request = self.context["request"]
+        user = request.user
+        task = self.instance
+        project = task.project
+
+        # ADMIN → unrestricted
+        if is_admin(user):
+            return new_user
+
+        # MANAGER only, and only within project
+        if not is_project_manager(user, project):
+            raise serializers.ValidationError(
+                "Only the project manager can reassign tasks."
+            )
+
+        if not is_project_employee(new_user, project):
+            raise serializers.ValidationError(
+                "Assignee must belong to the same project."
+            )
+
+        return new_user

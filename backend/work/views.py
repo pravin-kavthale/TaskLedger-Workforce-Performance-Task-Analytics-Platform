@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from rest_framework import viewsets, mixins
-from . models import Assignment, Project
-from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, UserProjectSerializer
-from . permissions import CanCreateProject, CanUpdateProject , CanManageProject
+
+from work.helper import is_admin
+from . models import Assignment, Project, Task
+from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
+from . permissions import CanCreateProject, CanUpdateProject , CanManageProject, TaskBasePermission
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from accounts.models import User
@@ -174,6 +176,7 @@ class ProjectMemberViewSet(
             .filter(project_id=project_id, is_active=is_active)
             .select_related("user", "assigned_by")
         )
+
 class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ProjectSerializer
     authentication_classes = [JWTAuthentication]
@@ -198,3 +201,88 @@ class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             raise PermissionDenied("Managers can view only their own projects.")
 
         return Project.objects.filter(manager_id=user_pk)
+
+class TaskViewSet(viewsets.ModelViewSet):
+   
+    model = Task
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, TaskBasePermission]
+    
+    def get_queryset(self):
+        user = self.request.user
+        
+        qs = Task.objects.select_related("project","assigned_to","created_by")
+
+        if is_admin(user):
+            return qs
+        
+        if user.role == User.Role.MANAGER:
+            return qs.filter(project__manager_id=user.id)
+        
+        # EMPLOYEE → only assigned tasks
+        return qs.filter(assigned_to=user)
+    
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return TaskReadSerializer
+        if self.action == 'create':
+            return TaskCreateSerializer
+        return TaskUpdateSerializer
+    
+    def perform_create(self, serializer):
+        project_id = self.kwargs.get("project_pk")
+
+        serializer.save(
+            project_id=project_id,
+            created_by=self.request.user
+        )
+    def partial_update(self, request, *args, **kwargs):
+        task = self.get_object()
+        user = request.user
+
+        if user.role == User.Role.EMPLOYEE:
+            illegal = set(request.data.keys()) - {"status"}
+            if illegal:
+                raise PermissionDenied(
+                    "Employees can only update task status."
+                )
+
+        return super().partial_update(request, *args, **kwargs)
+    def perform_update(self, serializer):
+        task = self.get_object()
+        user = self.request.user
+
+        new_status = serializer.validated_data.get("status")
+
+        if new_status:
+            # DONE is terminal
+            if task.status == Task.Status.DONE:
+                raise PermissionDenied("Completed tasks are immutable.")
+
+            # BLOCKED cannot be exited by employee
+            if (
+                task.status == Task.Status.BLOCKED
+                and user.role == User.Role.EMPLOYEE
+            ):
+                raise PermissionDenied(
+                    "Only managers can unblock tasks."
+                )
+
+        serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        task = self.get_object()
+
+        if request.user.role == User.Role.EMPLOYEE:
+            raise PermissionDenied("Employees cannot delete tasks.")
+
+        if task.status == Task.Status.DONE:
+            raise PermissionDenied(
+                "Completed tasks cannot be deleted."
+            )
+
+        return super().destroy(request, *args, **kwargs)
+
+                
+            
+        
