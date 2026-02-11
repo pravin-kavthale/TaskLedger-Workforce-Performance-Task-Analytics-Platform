@@ -210,8 +210,16 @@ class TaskViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        project_id = self.kwargs.get("project_pk")
+
+        if not project_id:
+            return Task.objects.none()
         
-        qs = Task.objects.select_related("project","assigned_to","created_by")
+        qs = Task.objects.select_related(
+            "project",
+            "assigned_to",
+            "created_by"
+        ).filter(project_id=project_id) 
 
         if is_admin(user):
             return qs
@@ -284,5 +292,4 @@ class TaskViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
                 
-            
-        
+
