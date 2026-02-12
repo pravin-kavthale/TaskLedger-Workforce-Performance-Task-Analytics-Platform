@@ -38,6 +38,21 @@ class Team(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     is_activate = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="teams_created"
+    )
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Team'
+        verbose_name_plural = 'Teams'
+    
+    def __str__(self):
+        return f"{self.code}:{self.name}"
+    
 
 
 

@@ -130,7 +130,7 @@ class UserDetailView(APIView):
         # Prevent self-delete
         if request.user.id == user.id:
             return Response(
-                {"error": "You cannot delete yourself"},
+                {"error": "You cannot deactivate yourself"},
                 status=400
             )
 
@@ -144,6 +144,12 @@ class UserDetailView(APIView):
                 status=403
             )
 
-        user.delete()
-        return Response(status=204)
+        # Soft delete (deactivate)
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+        return Response(
+            {"message": "User deactivated successfully"},
+            status=200
+        )
     
