@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, mixins
 
-from work.helper import is_admin
+from .helper import is_admin, is_project_employee, is_project_manager, is_team_member
 from . models import Assignment, Project, Task
 from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
 from . permissions import CanCreateProject, CanUpdateProject , CanManageProject, TaskBasePermission
@@ -69,35 +69,54 @@ class AssignmentViewSet(
     def get_queryset(self):
         user = self.request.user
 
-        if user.role == User.Role.ADMIN:
-            return Assignment.objects.all()
+        # ADMIN → everything
+        if is_admin(user):
+            return Assignment.objects.select_related(
+                "project", "assignee", "assigned_by"
+            )
 
+        # MANAGER → only assignments of their projects
         if user.role == User.Role.MANAGER:
-            return Assignment.objects.filter(project__manager_id=user.id)
+            return Assignment.objects.select_related(
+                "project", "assignee", "assigned_by"
+            ).filter(project__manager_id=user.id)
 
         return Assignment.objects.none()
 
     def perform_create(self, serializer):
-        project = serializer.validated_data["project"]
         user = self.request.user
+        project = serializer.validated_data["project"]
+        assignee = serializer.validated_data["assignee"]
 
-        if not CanManageProject():
+        # Permission check
+        if not (is_admin(user) or is_project_manager(user, project)):
             raise PermissionDenied("You cannot assign users to this project.")
+
+        # Team integrity check
+        if not is_team_member(assignee, project.team):
+            raise PermissionDenied("User does not belong to this project's team.")
 
         serializer.save(assigned_by=user)
 
     def perform_update(self, serializer):
-        assignment = self.get_object()
         user = self.request.user
+        assignment = self.get_object()
+        project = assignment.project
+        assignee = serializer.validated_data.get("assignee", assignment.assignee)
 
-        if not CanManageProject():
+        # Permission check
+        if not (is_admin(user) or is_project_manager(user, project)):
             raise PermissionDenied("You cannot modify assignments for this project.")
+
+        # Team integrity check
+        if not is_team_member(assignee, project.team):
+            raise PermissionDenied("User does not belong to this project's team.")
 
         serializer.save()
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
-
+    
 class UserProjectViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet

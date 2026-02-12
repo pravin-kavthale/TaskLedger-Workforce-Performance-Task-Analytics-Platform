@@ -6,8 +6,7 @@ from rest_framework import serializers
 from .models import Project, Assignment, Task
 from django.core.exceptions import ValidationError,PermissionDenied
 
-from .helper import is_admin, is_project_employee, is_project_manager
-
+from .helper import is_admin, is_project_employee, is_project_manager, is_team_member
 
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,6 +17,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'code',
             'description', 
             'department',
+            'team',
             'manager',
             'status',
             'start_date',
@@ -31,13 +31,34 @@ class ProjectSerializer(serializers.ModelSerializer):
             'created_by',
             'created_at',
             'updated_at',
+            'manager'
         ]
+    
+    def validate(self,attrs):
+        request = self.context['request']
+        team = attrs.get('team')
+        user = request.user
+
+        if not team:
+            raise serializers.ValidationError("Team is required.")
+        # Rule 1: Only ADMIN or team manager can create project
+        if user.role != "ADMIN" and team.manager != user:
+            raise PermissionDenied(
+                "Only ADMIN or the Team Manager can create a project."
+            )
+        
+        department = attrs.get("department")
+        if department and team.department != department:
+            raise serializers.ValidationError(
+                "Project department must match team department."
+            )
+        return attrs
 
             
     def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
-        project = Project.objects.create(**validated_data)
-        return project
+        request = self.context["request"]
+        validated_data["created_by"] = request.user
+        return super().create(validated_data)
 
 class AssignmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,8 +75,33 @@ class AssignmentSerializer(serializers.ModelSerializer):
         read_only_fields =[
             'id',
             'assigned_at',
+            'assigned_by',
         ]
     
+    def validate(self,attrs):
+        request = self.context['request']
+        user = request.user
+        project  = attrs.get('project')
+        assigne = attrs.get('user')
+        
+        if user != project.manager and user.role != User.Role.ADMIN:
+            raise PermissionDenied(
+                "Only the project manager or ADMIN can assign users to this project."
+            )
+        
+        if assigne and not is_team_member(assigne, team=project.team):
+            raise serializers.ValidationError(
+                "Assignee must be a member of the project team."
+            )
+        return attrs
+    
+    def create(self, validated_data):
+        request = self.context.get("request")
+        validated_data["assigned_by"] = request.user
+        return super().create(validated_data)
+
+    
+
 class UserProjectSerializer(serializers.ModelSerializer):
     project_id = serializers.IntegerField(source='project.id', read_only = True)
     project_name = serializers.CharField(source='project.name', read_only = True)

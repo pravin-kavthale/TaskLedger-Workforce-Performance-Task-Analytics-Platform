@@ -23,3 +23,6 @@ def is_project_manager_of_project(user, project_id):
         id=project_id,
         manager_id=user.id
     ).exists()
+
+def is_team_member(assignee, team):
+    return team.members.filter(id=assignee.id).exists()
