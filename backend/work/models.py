@@ -17,7 +17,7 @@ class Project(models.Model):
     name=models.CharField(max_length=200)
     code=models.CharField(max_length=50, unique=True)
     description=models.TextField(blank=True, null=True)
-    team = models.ForeignKey('organization.Team', on_delete=models.SET_NULL, related_name='projects')
+    team = models.ForeignKey('organization.Team', on_delete=models.SET_NULL,null=True, related_name='projects')
 
     start_date=models.DateField()
     end_date=models.DateField(blank=True, null=True)
@@ -44,8 +44,9 @@ class Project(models.Model):
     def clean(self):
         if self.end_date and self.end_date < self.start_date:
             raise ValidationError({"end_date": "End date cannot be earlier than start date."})
-        if self.team.department != self.department:
-            raise ValidationError({"team": "Selected team does not belong to the specified department."})
+        if self.team and self.department:
+            if self.team.department_id != self.department_id:
+                raise ValidationError({"team": "Selected team does not belong to the specified department."})
     
     def __str__(self):
         return f"{self.name} ({self.code})"

@@ -14,10 +14,11 @@ class User(AbstractUser, PermissionsMixin):
     created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_users')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     department=models.ForeignKey('organization.Department', on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+
+    team = models.ForeignKey("work.Team",on_delete=models.SET_NULL,null=True,blank=True,related_name="members")
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
-
-    def __str__(self):
+    
+    def __str__(self): 
         return self.email
-

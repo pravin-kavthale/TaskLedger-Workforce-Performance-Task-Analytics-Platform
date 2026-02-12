@@ -36,11 +36,6 @@ class Team(models.Model):
         related_name="managed_teams"
     )
 
-    members = models.ManyToManyField(
-        User,
-        related_name="teams"
-    )
-
     created_at = models.DateTimeField(auto_now_add=True)
     is_activate = models.BooleanField(default=True)
 
