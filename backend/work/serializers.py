@@ -100,8 +100,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
         validated_data["assigned_by"] = request.user
         return super().create(validated_data)
 
-    
-
 class UserProjectSerializer(serializers.ModelSerializer):
     project_id = serializers.IntegerField(source='project.id', read_only = True)
     project_name = serializers.CharField(source='project.name', read_only = True)
