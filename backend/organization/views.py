@@ -1,13 +1,17 @@
+from urllib import request
 from django.shortcuts import render
 from rest_framework import viewsets, mixins
 
-from backend.accounts.models import User
-from backend.work.helper import is_admin
+from accounts.models import User
+from work.helper import is_admin
 from . models import Department, Team
 from . serializers import DepartmentSerializer, TeamSerializer
 from . permissions import IsAdminUser, IsAdminOrTeamManager
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
+from rest_framework import status
+
 
 class DepartmentViewSet(
     mixins.ListModelMixin,    # GET /departments/
@@ -78,17 +82,39 @@ class TeamViewSet(
             manager=manager
         )
     
-        def perform_update(self, serializer):
-            request_user = self.request.user
-            team = self.get_object()
+    def perform_update(self, serializer):
+        request_user = self.request.user
+        team = self.get_object()
 
-            # Only Admin or team manager can update
-            if not (is_admin(request_user) or team.manager == request_user):
-                raise PermissionDenied("You cannot update this team.")
+        # Only Admin or team manager can update
+        if not (is_admin(request_user) or team.manager == request_user):
+            raise PermissionDenied("You cannot update this team.")
 
-            # Prevent changing created_by or manager arbitrarily
-            validated_data = serializer.validated_data.copy()
-            validated_data.pop("created_by", None)
-            validated_data.pop("manager", None)  # Optional: Only allow admin to change manager
+        # Prevent changing created_by or manager arbitrarily
+        validated_data = serializer.validated_data.copy()
+        validated_data.pop("created_by", None)
+        validated_data.pop("manager", None)  # Optional: Only allow admin to change manager
 
-            serializer.save(**validated_data)
+        serializer.save(**validated_data)
+    
+    def destroy(self, request, *args, **kwargs):
+        request_user = request.user
+        team = self.get_object()
+
+        if not (is_admin(request_user) or team.manager == request_user):
+            raise PermissionDenied("You cannot delete this team.")
+
+        if not team.is_activate:
+            return Response(
+                {"detail": "Team already inactive."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        team.is_activate = False
+        team.save(update_fields=["is_activate"])
+
+        return Response(
+            {
+                "detail": "Team deactivated successfully."},
+            status=status.HTTP_200_OK
+        )

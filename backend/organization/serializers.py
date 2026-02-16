@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from backend.accounts.models import User
+from accounts.models import User
 from .models import Department, Team
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -29,7 +29,7 @@ class TeamSerializer(serializers.ModelSerializer):
             'code',
             'department',
             'manager',
-            'is_active',
+            'is_activate',
         ]
     
     def validate_manager(self, manager):
@@ -74,4 +74,3 @@ class TeamSerializer(serializers.ModelSerializer):
                     new_manager.save(update_fields=['team'])
             return team 
     
-
