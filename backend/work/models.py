@@ -139,8 +139,6 @@ class Task(models.Model):
         MEDIUM = 2, "Medium"
         LOW = 3, "Low"
         
-    
-
     project = models.ForeignKey('work.Project', on_delete=models.CASCADE, related_name='tasks')
     assigned_to = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='tasks_assigned')
     title = models.CharField(max_length = 200, blank=False)
