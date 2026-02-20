@@ -44,27 +44,61 @@ Backend implementation will be developed incrementally using a clean, scalable d
 
 ---
 
-## 🗂️ Core Modules & Current Status
+# 🗂️ Core Modules & Current Status (Updated)
 
-### ✅ User & Access Control
-- User  
-- Role  
-- Profile  
-- JWT-based authentication with refresh token rotation
+## **User & Access Control**
+- **Custom User model** (email as `USERNAME_FIELD`)
+- **Role-based system** (ADMIN, MANAGER, EMPLOYEE)
+- **JWT authentication** using RS256
+- **Access + Refresh token rotation**
+- **Custom role claims** embedded in JWT
+- **Protected endpoints** with DRF permission classes
+- **Team assignment** with business-rule validation
 
-### ✅ Organization Structure
-- Department (fully implemented APIs)
-  - List departments
-  - Create department
-  - Retrieve department by ID
-  - Patch `is_active` to deactivate a department (PUT & DELETE disabled)
-- Project (planned)
-- ProjectMember (planned)
+## **Organization Structure**
 
-### ⚠️ Task & Activity Tracking (Planned)
-- Task  
-- TaskEvent  
-- ActivityLog  
+### **Department**
+- Full CRUD via ViewSet
+- **Soft deactivate** via `is_active`
+- **Role-restricted modification**
+
+### **Team**
+- Fields: `name`, `code`, `department`, `manager`, `created_by`, `is_activate`
+- **Soft delete** implemented
+- **Strict team-manager enforcement**
+- User belongs to **exactly one team** (FK design)
+- Controlled API for assigning users to teams
+- **Permission-restricted updates**
+
+## **Project Management**
+
+### **Project**
+- Belongs to a **Team** and **Department**
+- **Team manager** automatically becomes project manager
+- **Validation** for team–department consistency
+- **Status lifecycle** enforced (PLANNED, ACTIVE, etc.)
+- **Signals** propagate manager changes safely
+
+### **Assignment**
+- Links users to projects
+- **Active assignment uniqueness** enforced
+- **Role-based restrictions** (only Project Manager or ADMIN can assign)
+- **Indexed** for performance
+- **Validates** user belongs to project's team
+
+### **Task Management**
+- **Task** belongs to project
+- **Assigned to team member only**
+- **Role-based update restrictions**:
+  - **EMPLOYEE** → status only
+  - **MANAGER** → full control within project
+  - **ADMIN** → unrestricted
+- **Nested route** under project
+- **Integrity-tested** under team reassignment scenarios
+
+---
+
+**Status: Production-ready core modules complete** 🎉
 
 ### ⚠️ Analytics (Planned)
 - Event-based aggregation
@@ -75,14 +109,20 @@ Backend implementation will be developed incrementally using a clean, scalable d
 
 ## 🔗 Entity Relationships (Overview)
 
-- A **User** can have multiple **Roles**  
-- A **User** owns exactly one **Profile**  
-- A **Profile** belongs to a **Department**  
-- A **Project** belongs to a **Department** and is managed by a **User**  
-- **Projects** contain multiple **Tasks**  
-- **Tasks** are assigned to **Users**  
-- **TaskEvents** track task lifecycle actions  
-- **ActivityLogs** capture system-level actions for auditing  
+
+- **User** belongs to **exactly one Team**
+- **Team** belongs to **one Department** 
+- **Project** belongs to **one Team**
+- **Project** has **many Assignments**
+- **Assignment** links **one User** to **one Project**
+- **Task** belongs to **one Project**
+- **Task** is assigned to **one User**
+
+**Key Constraints:**
+- One-to-one team membership per user
+- Team-department hierarchy enforced
+- Project-team consistency validated
+- Active assignment uniqueness
 
 ---
 
@@ -176,12 +216,12 @@ UI prototyping is handled using **Figma** with AI-assisted design tools.
 
 ## 📌 Roadmap (High-Level)
 
-1. Backend core setup & authentication ✅  
-2. Department API implementation ✅  
-3. Task & event tracking APIs ⚠️  
-4. GitHub integration (token exchange view implemented, contribution calculation planned) ⚠️  
-5. Analytics & performance metrics ⚠️  
-6. Frontend dashboard integration ⚠️  
+1. Backend core setup & authentication 
+2. Department API implementation 
+3. Task & event tracking APIs  
+4. GitHub integration (token exchange view implemented, contribution calculation planned) 
+5. Analytics & performance metrics 
+6. Frontend dashboard integration 
 
 ---
 
