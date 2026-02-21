@@ -199,6 +199,9 @@ Permission enforcement is done with **DRF permission classes** (e.g. `IsAuthenti
 ![Module Diagram](Documents/Module%20Diagram.png)  
 *High-level module interactions between frontend, backend, and database components.*
 
+## API Flow Diagram
+![API FLow  Diagram](Documents/TaskLedger_API_Flow_Diagram.png)
+
 ---
 
 ## 🎨 Branding & UI Direction
