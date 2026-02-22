@@ -85,8 +85,8 @@ class AssignmentSerializer(serializers.ModelSerializer):
         assigne = attrs.get('user')
         
         if user != project.manager and user.role != User.Role.ADMIN:
-            raise PermissionDenied(
-                "Only the project manager or ADMIN can assign users to this project."
+            raise serializers.ValidationError(
+                "Only the project manager or ADMIN can assign users."
             )
         
         if assigne and not is_team_member(assigne, team=project.team):
