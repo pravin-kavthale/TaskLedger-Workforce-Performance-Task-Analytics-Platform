@@ -4,7 +4,7 @@ from rest_framework import viewsets, mixins
 from .helper import is_admin, is_project_employee, is_project_manager, is_team_member
 from . models import Assignment, Project, Task
 from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
-from . permissions import CanCreateProject, CanUpdateProject , CanManageProject, TaskBasePermission
+from . permissions import CanCreateProject, CanUpdateProject , CanManageProject, TaskBasePermission, TaskPermission
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from accounts.models import User
@@ -225,7 +225,7 @@ class TaskViewSet(viewsets.ModelViewSet):
    
     model = Task
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, TaskBasePermission]
+    permission_classes = [IsAuthenticated, TaskPermission]
     
     def get_queryset(self):
         user = self.request.user
@@ -243,11 +243,19 @@ class TaskViewSet(viewsets.ModelViewSet):
         if is_admin(user):
             return qs
         
-        if user.role == User.Role.MANAGER:
-            return qs.filter(project__manager_id=user.id)
-        
-        # EMPLOYEE → only assigned tasks
-        return qs.filter(assigned_to=user)
+        # MANAGER or EMPLOYEE
+        # They can see all tasks if they are either the Project Manager or an assigned member.
+        is_pm = Project.objects.filter(id=project_id, manager=user).exists()
+        is_member = Assignment.objects.filter(
+            project_id=project_id,
+            user=user,
+            is_active=True
+        ).exists()
+
+        if is_pm or is_member:
+            return qs
+
+        return Task.objects.none()
     
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
