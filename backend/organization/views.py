@@ -4,12 +4,15 @@ from rest_framework import viewsets, mixins
 from accounts.models import User
 from work.helper import is_admin
 from . models import Department, Team
-from . serializers import DepartmentSerializer, TeamSerializer
-from core.permissions import TeamPermission, IsAdmin
+from . serializers import DepartmentSerializer, TeamSerializer, TeamAssignUserSerializer
+from core.permissions import TeamPermission, IsAdmin, IsAdminOrTeamManager
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from .services.team_service import assign_user_to_team
 
 
 class DepartmentViewSet(
@@ -49,7 +52,10 @@ class TeamViewSet(
     
     def get_queryset(self):
         user = self.request.user
-        if is_admin(user):
+        if not user.is_authenticated:
+            return Team.objects.none()
+
+        if is_admin(user) or self.action in ['retrieve', 'assign_user']:
             return Team.objects.all()
         
         if user.role == User.Role.MANAGER:
@@ -87,3 +93,17 @@ class TeamViewSet(
         team.is_activate = False
         team.save(update_fields=["is_activate"])
         return Response({"detail": "Team deactivated successfully."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrTeamManager], url_path='assign-user')
+    def assign_user(self, request, pk=None):
+        team = self.get_object()
+        serializer = TeamAssignUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_id = serializer.validated_data['user_id']
+        assign_user_to_team(team, user_id)
+
+        return Response(
+            {"message": "User successfully assigned to team."},
+            status=status.HTTP_201_CREATED
+        )
