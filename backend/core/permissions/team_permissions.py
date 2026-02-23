@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from accounts.models import User
 
-class AssignmentPermission(BasePermission):
+class TeamPermission(BasePermission):
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
@@ -9,11 +9,10 @@ class AssignmentPermission(BasePermission):
         if request.user.role == User.Role.ADMIN:
             return True
 
+        if request.user.role == User.Role.MANAGER:
+            return True
+
         if request.method == 'POST':
-            project_id = request.data.get('project')
-            if project_id:
-                from work.models import Project
-                return Project.objects.filter(id=project_id, manager=request.user).exists()
             return False
 
         return True
@@ -24,10 +23,11 @@ class AssignmentPermission(BasePermission):
         if user.role == User.Role.ADMIN:
             return True
 
-        if obj.project.manager == user:
+        if obj.manager == user:
             return True
 
         if request.method in SAFE_METHODS:
-            return obj.user == user
+            # Check if they are a member of the team
+            return obj.members.filter(id=user.id).exists()
 
         return False
