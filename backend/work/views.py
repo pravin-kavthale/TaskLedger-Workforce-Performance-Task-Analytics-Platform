@@ -4,7 +4,7 @@ from rest_framework import viewsets, mixins
 from .helper import is_admin, is_project_employee, is_project_manager, is_team_member
 from . models import Assignment, Project, Task
 from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
-from . permissions import CanCreateProject, CanUpdateProject , CanManageProject, TaskBasePermission
+from core.permissions.task_permissions import TaskBasePermission
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from accounts.models import User
