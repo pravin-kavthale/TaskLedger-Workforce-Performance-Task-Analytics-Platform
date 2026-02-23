@@ -1,6 +1,5 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from accounts.models import User
-from work.models import Project, Assignment, Task
 
 class TaskPermission(BasePermission):
     def has_permission(self, request, view):
@@ -14,6 +13,7 @@ class TaskPermission(BasePermission):
         if not project_id:
             return False
 
+        from work.models import Project, Assignment
         is_pm = Project.objects.filter(id=project_id, manager=request.user).exists()
 
         if request.method == 'POST':
@@ -29,10 +29,7 @@ class TaskPermission(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-
-        # Admin has full access, but still respect DONE terminal status if business logic says so.
-        # Original view had: if task.status == Task.Status.DONE: raise PermissionDenied("Completed tasks are immutable.")
-        # and it was outside role checks.
+        from work.models import Task
 
         if request.method == 'DELETE':
             if obj.status == Task.Status.DONE:
@@ -81,8 +78,6 @@ class TaskPermission(BasePermission):
                 return True
             if obj.project.manager == user:
                 return True
-            # Other project members are already checked in has_permission for list,
-            # and they are allowed to retrieve.
             return True
 
         return False
