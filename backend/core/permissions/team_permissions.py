@@ -31,3 +31,23 @@ class TeamPermission(BasePermission):
             return obj.members.filter(id=user.id).exists()
 
         return False
+
+class IsAdminOrTeamManager(BasePermission):
+    def has_permission(self, request, view):
+        # Block completely unauthenticated users and Employees
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.role in [User.Role.ADMIN, User.Role.MANAGER]
+        )
+
+    def has_object_permission(self, request, view, obj):
+        # ADMIN: Full access
+        if request.user.role == User.Role.ADMIN:
+            return True
+
+        # MANAGER of that specific team
+        if request.user.role == User.Role.MANAGER and obj.manager == request.user:
+            return True
+
+        return False
