@@ -104,19 +104,6 @@ class TeamViewSet(
         assign_user_to_team(team, user_id)
 
         return Response(
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-            {
-                "detail": "Team deactivated successfully."},
-            status=status.HTTP_200_OK
-        )
-=======
             {"message": f"User {user_id} successfully assigned to team."},
             status=status.HTTP_201_CREATED
         )
->>>>>>> Stashed changes
-=======
-            {"message": "User successfully assigned to team."},
-            status=status.HTTP_201_CREATED
-        )
->>>>>>> 256e651804daae79d52c32d1c337a20751aafaf8
