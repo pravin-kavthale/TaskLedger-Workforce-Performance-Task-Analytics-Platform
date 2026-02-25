@@ -74,3 +74,6 @@ class TeamSerializer(serializers.ModelSerializer):
                     new_manager.save(update_fields=['team'])
             return team 
     
+
+class TeamAssignUserSerializer(serializers.Serializer):
+    user_id = serializers.CharField(required=True)

@@ -1,11 +1,11 @@
 from django.shortcuts import render
-from rest_framework_simplejwt.views import TokenObtainPairView # type: ignore
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer, UserReadSerializer
-from rest_framework.views import APIView # type: ignore
-from rest_framework.response import Response # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
-from .permissions import IsAdmin, IsAdminOrManager
+from core.permissions import UserPermission
 from .serializers import CreateUserSerializer, CurrentUserSerializer, UpdateUserSerializer, UserReadSerializer
 from .models import User 
 
@@ -33,7 +33,7 @@ class CurrentUserView(APIView):
         return Response(serializer.data)
 
 class CreateUserView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrManager]
+    permission_classes = [UserPermission]
     
     def get(self, request):
         users = User.objects.all()
@@ -61,45 +61,28 @@ class CreateUserView(APIView):
         },status=201)
 
 class UserDetailView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrManager]
+    permission_classes = [UserPermission]
+
+    def get_object(self, pk):
+        try:
+            obj = User.objects.get(pk=pk)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        except User.DoesNotExist:
+            return None
 
     def get(self, request, pk):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=404
-            )
-
-        # Managers can only view EMPLOYEEs
-        if (
-            request.user.role == User.Role.MANAGER
-            and user.role != User.Role.EMPLOYEE
-        ):
-            return Response(
-                {"error": "Managers can only view employees"},
-                status=403
-            )
+        user = self.get_object(pk)
+        if user is None:
+            return Response({"error": "User not found"}, status=404)
 
         serializer = UserReadSerializer(user)   
         return Response(serializer.data, status=200)
 
     def patch(self, request, pk):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
+        user = self.get_object(pk)
+        if user is None:
             return Response({"error": "User not found"}, status=404)
-
-        # Managers can only modify EMPLOYEEs
-        if (
-            request.user.role == User.Role.MANAGER
-            and user.role != User.Role.EMPLOYEE
-        ):
-            return Response(
-                {"error": "Managers can only manage employees"},
-                status=403
-            )
 
         serializer = UpdateUserSerializer(
             user,
@@ -124,29 +107,16 @@ class UserDetailView(APIView):
         )
 
     def delete(self, request, pk):
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
+        user = self.get_object(pk)
+        if user is None:
             return Response({"error": "User not found"}, status=404)
 
-        # Prevent self-delete
         if request.user.id == user.id:
             return Response(
                 {"error": "You cannot deactivate yourself"},
                 status=400
             )
 
-        # Managers cannot delete admins or other managers
-        if (
-            request.user.role == User.Role.MANAGER
-            and user.role != User.Role.EMPLOYEE
-        ):
-            return Response(
-                {"error": "Managers can only delete employees"},
-                status=403
-            )
-
-        # Soft delete (deactivate)
         user.is_active = False
         user.save(update_fields=["is_active"])
 
@@ -154,4 +124,3 @@ class UserDetailView(APIView):
             {"message": "User deactivated successfully"},
             status=200
         )
-    
