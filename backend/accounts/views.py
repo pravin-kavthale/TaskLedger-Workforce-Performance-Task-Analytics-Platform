@@ -116,6 +116,8 @@ class UserDetailView(APIView):
                 "username": user.username,
                 "email": user.email,
                 "role": user.role,
+                "department" : user.department.name if user.department else None,
+                "team" : user.team.name if user.team else None,
                 "is_active": user.is_active,
             },
             status=200

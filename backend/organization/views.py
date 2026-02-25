@@ -114,7 +114,13 @@ class TeamViewSet(
         team.save(update_fields=["is_activate"])
 
         return Response(
+<<<<<<< Updated upstream
             {
                 "detail": "Team deactivated successfully."},
             status=status.HTTP_200_OK
         )
+=======
+            {"message": f"User {user_id} successfully assigned to team."},
+            status=status.HTTP_201_CREATED
+        )
+>>>>>>> Stashed changes
