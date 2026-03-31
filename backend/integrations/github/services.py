@@ -21,7 +21,7 @@ class GitHubService:
         expires_in = token_data.get("expires_in")
         token_type = token_data.get("token_type")
         scope = token_data.get("scope", "")
-
+        
         if not access_token:
             raise ValidationError("failed_to_obtain_access_token")
 

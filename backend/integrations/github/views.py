@@ -3,22 +3,30 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.shortcuts import redirect
+from httpx import request
 from rest_framework.views import APIView, Response
 from rest_framework.permissions import IsAuthenticated
+from accounts.models import User
 
 from rest_framework import status
 from django.core.exceptions import ValidationError
 from .services import GitHubService
+from rest_framework.permissions import AllowAny
+
+from django.core.signing import dumps
+from django.core.signing import loads
 
 class GitHubAuthorizationView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated] 
 
     def get(self, request):
 
-        state = secrets.token_urlsafe(16)
+        user = request.user
 
-        request.session["github_oauth_state"] = state
+        state = dumps({
+            "user_id": user.id
+        })
 
         params = {
             "client_id": settings.GITHUB_CLIENT_ID,
@@ -33,27 +41,42 @@ class GitHubAuthorizationView(APIView):
         )
 
         return redirect(authorization_url)
+    
+ 
 
 class GitHubCallbackView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
-        code =  request.query_parameters.get("code")
-        state = request.query_parameters.get("state")
+        code = request.query_params.get("code")
+        state = request.query_params.get("state")
 
-        stored_state = request.session.get("github_oauth_state")
+        if not code or not state:
+            return Response(
+                {"error": "Missing code or state"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        if not stored_state or state != stored_state:
-            return Response({"error": "Invalid state parameter"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not code:
-            return Response({"error": "Missing code parameter"}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
-            GitHubService.connect_github(user = request.user , code = code)
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            data = loads(state)
+            user_id = data["user_id"]
+        except Exception:
+            return Response(
+                {"error": "Invalid state"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        return Response({"message": "GitHub account linked successfully"}, status=status.HTTP_200_OK)
-        
-        
+        user = User.objects.get(id=user_id)
+
+        try:
+            GitHubService.connect_github(user=user, code=code)
+        except ValidationError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {"message": "GitHub account linked successfully"},
+            status=status.HTTP_200_OK
+        )
