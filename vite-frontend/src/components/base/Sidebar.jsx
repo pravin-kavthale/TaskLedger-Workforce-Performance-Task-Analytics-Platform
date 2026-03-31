@@ -10,7 +10,8 @@ import {
   User,
   LogOut,
   Menu,
-  UserPlus
+  UserPlus,
+  GithubIcon
 } from 'lucide-react';
 
 const navItems = [
@@ -30,7 +31,7 @@ const navItems = [
   { to: '/app/audit-log', label: 'Audit Log', icon: Activity },
 
   // --- NAVBAR / SYSTEM ACTIONS (temporary routes for now) ---
-  { to: '/signup', label: 'Add User', icon: UserPlus },
+  { to: '/signup', label: 'Add User', icon: UserPlus }
 ];
 
 
@@ -42,6 +43,42 @@ export default function Sidebar() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleConnectGithub = async () => {
+    const token = localStorage.getItem('taskledger_access_token');
+
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        'http://localhost:8000/api/integrations/github/connect/',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to connect GitHub OAuth: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data?.url) {
+        throw new Error('GitHub OAuth URL not found in response.');
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('GitHub OAuth connection failed:', error);
+      alert('Unable to connect to GitHub right now. Please try again.');
+    }
   };
 
   return (
@@ -75,6 +112,15 @@ export default function Sidebar() {
               </Link>
             );
           })}
+
+          <button
+            type="button"
+            onClick={handleConnectGithub}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-white/5"
+          >
+            <GithubIcon size={18} />
+            Connect GitHub
+          </button>
         </nav>
 
         {/* Logout */}

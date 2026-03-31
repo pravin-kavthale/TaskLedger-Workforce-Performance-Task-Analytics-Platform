@@ -12,7 +12,7 @@ let refreshPromise = null;
 let refreshAttempted = false;
 let currentAccessToken = null;
 
-// login function
+// Login Function
 export async function login(email, password) {
   const res = await fetch(`${API_BASE_URL}/accounts/auth/login/`, {
     method: 'POST',
@@ -26,6 +26,9 @@ export async function login(email, password) {
     const msg = data.detail || data.message || data.email?.[0] || data.password?.[0] || 'Login failed';
     throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
   }
+
+
+  setTokens(data.access, data.refresh);
 
   return data;
 }
@@ -97,7 +100,10 @@ export async function refreshAccessToken() {
       }
 
       // Update tokens
-      setTokens(data.access, data.refresh || refreshToken);
+      setTokens(
+        data.access,
+        data.refresh ? data.refresh : refreshToken
+      );
       return data.access;
     } finally {
       // Clear the promise so future calls can attempt refresh again
