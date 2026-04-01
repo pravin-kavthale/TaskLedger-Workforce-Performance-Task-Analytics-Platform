@@ -46,25 +46,15 @@ export default function Sidebar() {
   };
 
   const handleConnectGithub = () => {
-    // Get your JWT from localStorage
     const token = localStorage.getItem('taskledger_access_token');
 
-    // If not logged in, redirect to login
     if (!token) {
-      navigate('/login');
+      navigate('/login'); // use top-level navigate
       return;
     }
 
-    // Construct the backend connect URL with Authorization header token
-    // We cannot use fetch for OAuth, must redirect the browser
-    const backendUrl = 'http://localhost:8000/api/integrations/github/connect/';
-
-    // Create a temporary form to send the token in headers via query param
-    // (OR configure your backend to read token from cookies/session)
-    const urlWithToken = `${backendUrl}?token=${token}`;
-
-    // Redirect the browser directly to backend connect endpoint
-     window.location.href = `http://localhost:8000/api/integrations/github/connect/?token=${token}`;
+    // Redirect browser to backend for GitHub OAuth
+    window.location.href = "http://localhost:8000/api/integrations/github/connect/";
   };
 
   return (
