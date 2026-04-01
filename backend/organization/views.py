@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from .services.team_service import assign_user_to_team
+from audit.services import ActivityActionType, ActivityTargetType, log_activity
 
 
 class DepartmentViewSet(
@@ -72,10 +73,24 @@ class TeamViewSet(
             else:
                 raise PermissionDenied("Admin must specify a manager for the team.")
 
-        serializer.save(
+        previous_team_id = manager.team_id if manager else None
+
+        team = serializer.save(
             created_by=request_user,
             manager=manager
         )
+
+        if manager:
+            log_activity(
+                user=request_user,
+                action_type=ActivityActionType.USER_ADDED_TO_TEAM,
+                target_type=ActivityTargetType.TEAM,
+                target_id=team.id,
+                metadata={
+                    "user_id": {"old": None, "new": manager.id},
+                    "team_id": {"old": previous_team_id, "new": team.id},
+                },
+            )
     
     def perform_update(self, serializer):
         validated_data = serializer.validated_data.copy()
@@ -101,7 +116,7 @@ class TeamViewSet(
         serializer.is_valid(raise_exception=True)
 
         user_id = serializer.validated_data['user_id']
-        assign_user_to_team(team, user_id)
+        assign_user_to_team(team, user_id, actor=request.user)
 
         return Response(
             {"message": f"User {user_id} successfully assigned to team."},

@@ -12,6 +12,37 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from accounts.models import User
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
+from audit.services import (
+    ActivityActionType,
+    ActivityTargetType,
+    log_activity,
+)
+
+
+def _normalize_value(field_name, value):
+    if field_name in {"assigned_to", "user", "project", "team", "department", "manager"}:
+        return value.id if value is not None else None
+    return value
+
+
+def _extract_changes(instance_before, validated_data, fields):
+    changes = {}
+    for field in fields:
+        if field not in validated_data:
+            continue
+        old_value = _normalize_value(field, getattr(instance_before, field, None))
+        new_value = _normalize_value(field, validated_data.get(field))
+        if old_value != new_value:
+            changes[field] = {"old": old_value, "new": new_value}
+    return changes
+
+
+def _create_metadata(values):
+    return {field: {"old": None, "new": value} for field, value in values.items()}
+
+
+def _delete_metadata(values):
+    return {field: {"old": value, "new": None} for field, value in values.items()}
 
 
 class ProjectViewSet(
@@ -36,7 +67,42 @@ class ProjectViewSet(
         return Project.objects.filter(assignments__user=user, assignments__is_active=True).distinct()
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        project = serializer.save(created_by=self.request.user)
+        log_activity(
+            user=self.request.user,
+            action_type=ActivityActionType.PROJECT_CREATED,
+            target_type=ActivityTargetType.PROJECT,
+            target_id=project.id,
+            metadata=_create_metadata({
+                "name": project.name,
+                "code": project.code,
+                "status": project.status,
+                "team_id": project.team_id,
+                "department_id": project.department_id,
+            }),
+        )
+
+    def perform_update(self, serializer):
+        project = self.get_object()
+        tracked_fields = [
+            "name",
+            "description",
+            "department",
+            "team",
+            "status",
+            "start_date",
+            "end_date",
+        ]
+        changes = _extract_changes(project, serializer.validated_data, tracked_fields)
+        updated_project = serializer.save()
+        if changes:
+            log_activity(
+                user=self.request.user,
+                action_type=ActivityActionType.PROJECT_UPDATED,
+                target_type=ActivityTargetType.PROJECT,
+                target_id=updated_project.id,
+                metadata=changes,
+            )
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
@@ -66,7 +132,18 @@ class AssignmentViewSet(
         assignee = serializer.validated_data["user"]
         if not is_team_member(assignee, project.team):
             raise PermissionDenied("User does not belong to this project's team.")
-        serializer.save(assigned_by=user)
+        assignment = serializer.save(assigned_by=user)
+        log_activity(
+            user=user,
+            action_type=ActivityActionType.USER_ASSIGNED_TO_PROJECT,
+            target_type=ActivityTargetType.PROJECT,
+            target_id=assignment.project_id,
+            metadata=_create_metadata({
+                "user_id": assignment.user_id,
+                "role": assignment.role,
+                "is_active": assignment.is_active,
+            }),
+        )
 
     def perform_update(self, serializer):
         assignment = self.get_object()
@@ -74,7 +151,28 @@ class AssignmentViewSet(
         assignee = serializer.validated_data.get("user", assignment.user)
         if not is_team_member(assignee, project.team):
             raise PermissionDenied("User does not belong to this project's team.")
-        serializer.save()
+        tracked_fields = ["user", "role", "is_active"]
+        changes = _extract_changes(assignment, serializer.validated_data, tracked_fields)
+        updated_assignment = serializer.save()
+        if not changes:
+            return
+
+        if "is_active" in changes and changes["is_active"]["new"] is False:
+            action_type = ActivityActionType.USER_REMOVED_FROM_PROJECT
+        elif "role" in changes:
+            action_type = ActivityActionType.USER_ROLE_CHANGED_IN_PROJECT
+        elif "user" in changes:
+            action_type = ActivityActionType.USER_ASSIGNED_TO_PROJECT
+        else:
+            action_type = ActivityActionType.USER_ASSIGNED_TO_PROJECT
+
+        log_activity(
+            user=self.request.user,
+            action_type=action_type,
+            target_type=ActivityTargetType.PROJECT,
+            target_id=updated_assignment.project_id,
+            metadata=changes,
+        )
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
@@ -163,4 +261,73 @@ class TaskViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         project_id = self.kwargs.get("project_pk")
-        serializer.save(project_id=project_id, created_by=self.request.user)
+        task = serializer.save(project_id=project_id, created_by=self.request.user)
+        log_activity(
+            user=self.request.user,
+            action_type=ActivityActionType.TASK_CREATED,
+            target_type=ActivityTargetType.TASK,
+            target_id=task.id,
+            metadata=_create_metadata({
+                "project_id": task.project_id,
+                "title": task.title,
+                "status": task.status,
+                "assigned_to": task.assigned_to_id,
+            }),
+        )
+
+    def perform_update(self, serializer):
+        task = self.get_object()
+        tracked_fields = [
+            "title",
+            "description",
+            "priority",
+            "estimated_hours",
+            "status",
+            "assigned_to",
+        ]
+        changes = _extract_changes(task, serializer.validated_data, tracked_fields)
+        updated_task = serializer.save()
+
+        if not changes:
+            return
+
+        changed_fields = set(changes.keys())
+        detail_fields = {"title", "description", "priority", "estimated_hours"}
+
+        if changed_fields == {"status"}:
+            action_type = ActivityActionType.TASK_STATUS_CHANGED
+        elif changed_fields == {"assigned_to"}:
+            if changes["assigned_to"]["old"] is None:
+                action_type = ActivityActionType.TASK_ASSIGNED
+            else:
+                action_type = ActivityActionType.TASK_REASSIGNED
+        elif changed_fields.intersection(detail_fields):
+            action_type = ActivityActionType.TASK_DETAILS_UPDATED
+        else:
+            action_type = ActivityActionType.TASK_STATUS_CHANGED
+
+        log_activity(
+            user=self.request.user,
+            action_type=action_type,
+            target_type=ActivityTargetType.TASK,
+            target_id=updated_task.id,
+            metadata=changes,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        task = self.get_object()
+        task_id = task.id
+        metadata = {
+            "project_id": task.project_id,
+            "status": task.status,
+            "assigned_to": task.assigned_to_id,
+        }
+        response = super().destroy(request, *args, **kwargs)
+        log_activity(
+            user=request.user,
+            action_type=ActivityActionType.TASK_DELETED,
+            target_type=ActivityTargetType.TASK,
+            target_id=task_id,
+            metadata=_delete_metadata(metadata),
+        )
+        return response
