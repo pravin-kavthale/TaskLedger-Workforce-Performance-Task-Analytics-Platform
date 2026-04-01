@@ -15,33 +15,46 @@ from rest_framework.permissions import AllowAny
 
 from django.core.signing import dumps
 from django.core.signing import loads
+from rest_framework_simplejwt.tokens import UntypedToken
+from rest_framework_simplejwt.exceptions import TokenError
+from urllib.parse import urlencode
+import secrets
+
 
 class GitHubAuthorizationView(APIView):
-
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [AllowAny]  # don't rely on DRF auth
 
     def get(self, request):
+        # Get JWT from query param
+        token = request.query_params.get("token")
+        if not token:
+            return Response({"detail": "Token required"}, status=401)
 
-        user = request.user
+        try:
+            # Decode JWT manually
+            untoken = UntypedToken(token)
+            payload = untoken.payload
+            user_id = payload.get("user_id")
+            user = User.objects.get(id=user_id)
+        except (TokenError, User.DoesNotExist):
+            return Response({"detail": "Invalid token"}, status=401)
 
-        state = dumps({
-            "user_id": user.id
+        # Generate OAuth state with user_id
+        state_data = dumps({
+            "user_id": user.id,
+            "csrf": secrets.token_urlsafe(16)
         })
 
+        # Build GitHub OAuth URL
         params = {
             "client_id": settings.GITHUB_CLIENT_ID,
             "redirect_uri": settings.GITHUB_REDIRECT_URI,
             "scope": "repo user",
-            "state": state,
+            "state": state_data,
         }
 
-        authorization_url = (
-            "https://github.com/login/oauth/authorize?"
-            + urlencode(params)
-        )
-
+        authorization_url = "https://github.com/login/oauth/authorize?" + urlencode(params)
         return redirect(authorization_url)
-    
  
 
 class GitHubCallbackView(APIView):
@@ -52,31 +65,19 @@ class GitHubCallbackView(APIView):
         state = request.query_params.get("state")
 
         if not code or not state:
-            return Response(
-                {"error": "Missing code or state"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return redirect("http://localhost:3000/dashboard?github_linked=0")
 
         try:
             data = loads(state)
-            user_id = data["user_id"]
+            user_id = data.get("user_id")
+            user = User.objects.get(id=user_id)
         except Exception:
-            return Response(
-                {"error": "Invalid state"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        user = User.objects.get(id=user_id)
+            return redirect("http://localhost:3000/dashboard?github_linked=0")
 
         try:
             GitHubService.connect_github(user=user, code=code)
-        except ValidationError as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except ValidationError:
+            return redirect("http://localhost:3000/dashboard?github_linked=0")
 
-        return Response(
-            {"message": "GitHub account linked successfully"},
-            status=status.HTTP_200_OK
-        )
+        # Success → redirect to frontend with query param
+        return redirect("http://localhost:3000/dashboard?github_linked=1")

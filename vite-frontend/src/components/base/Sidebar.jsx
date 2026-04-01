@@ -45,40 +45,26 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  const handleConnectGithub = async () => {
+  const handleConnectGithub = () => {
+    // Get your JWT from localStorage
     const token = localStorage.getItem('taskledger_access_token');
 
+    // If not logged in, redirect to login
     if (!token) {
       navigate('/login');
       return;
     }
 
-    try {
-      const response = await fetch(
-        'http://localhost:8000/api/integrations/github/connect/',
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+    // Construct the backend connect URL with Authorization header token
+    // We cannot use fetch for OAuth, must redirect the browser
+    const backendUrl = 'http://localhost:8000/api/integrations/github/connect/';
 
-      if (!response.ok) {
-        throw new Error(`Failed to connect GitHub OAuth: ${response.status}`);
-      }
+    // Create a temporary form to send the token in headers via query param
+    // (OR configure your backend to read token from cookies/session)
+    const urlWithToken = `${backendUrl}?token=${token}`;
 
-      const data = await response.json();
-
-      if (!data?.url) {
-        throw new Error('GitHub OAuth URL not found in response.');
-      }
-
-      window.location.href = data.url;
-    } catch (error) {
-      console.error('GitHub OAuth connection failed:', error);
-      alert('Unable to connect to GitHub right now. Please try again.');
-    }
+    // Redirect the browser directly to backend connect endpoint
+     window.location.href = `http://localhost:8000/api/integrations/github/connect/?token=${token}`;
   };
 
   return (
