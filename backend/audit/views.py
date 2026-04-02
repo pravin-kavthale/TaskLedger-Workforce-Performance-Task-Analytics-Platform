@@ -121,7 +121,6 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
     def _employee_visibility_q(self, user):
-        project_ids = Assignment.objects.filter(user=user, is_active=True).values("project_id")
         task_ids = Task.objects.filter(assigned_to=user).values("id")
 
         project_assignment_q = Q(action_type__in=[
@@ -131,8 +130,6 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         ]) & (
             Q(metadata__user_id__new=user.id)
             | Q(metadata__user_id__old=user.id)
-            | Q(metadata__user__new=user.id)
-            | Q(metadata__user__old=user.id)
         )
 
         team_membership_q = Q(action_type__in=[
@@ -145,7 +142,6 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
 
         return (
             Q(user=user)
-            | Q(target_type=ActivityTargetType.PROJECT, target_id__in=project_ids)
             | Q(target_type=ActivityTargetType.TASK, target_id__in=task_ids)
             | project_assignment_q
             | team_membership_q

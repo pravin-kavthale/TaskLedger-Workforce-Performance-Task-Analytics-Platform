@@ -50,7 +50,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
         except ValueError:
             if settings.DEBUG:
                 raise
-            return self._generic_message(user_label, obj.action_type, obj.target_type)
+            return f"User performed {obj.action_type}"
 
     def _build_message(self, obj, metadata, user_label):
         self._validate_metadata(obj, metadata)
@@ -103,8 +103,6 @@ class ActivityLogSerializer(serializers.ModelSerializer):
             team_change = metadata.get("team_id")
             if not isinstance(user_change, dict) or not isinstance(team_change, dict):
                 self._raise_invalid(action_type, "expected metadata['user_id'] and metadata['team_id']")
-            if user_change.get("new") is None or team_change.get("new") is None:
-                self._raise_invalid(action_type, "expected metadata['user_id'].new and metadata['team_id'].new")
 
     def _raise_invalid(self, action_type, detail):
         raise ValueError(f"Invalid activity log metadata for {action_type}: {detail}")
