@@ -19,6 +19,35 @@ class ActivityLogUserSerializer(serializers.ModelSerializer):
 
 
 class ActivityLogSerializer(serializers.ModelSerializer):
+    EXPECTED_METADATA = {
+        ActivityActionType.TASK_STATUS_CHANGED: [
+            {"path": "status.old", "required": True, "allow_none": False},
+            {"path": "status.new", "required": True, "allow_none": False},
+        ],
+        ActivityActionType.TASK_ASSIGNED: [
+            {"path": "assigned_to", "required": True, "type": dict},
+            {"path": "assigned_to.new", "required": True, "allow_none": False},
+        ],
+        ActivityActionType.TASK_REASSIGNED: [
+            {"path": "assigned_to", "required": True, "type": dict},
+            {"path": "assigned_to.old", "required": True, "allow_none": False},
+            {"path": "assigned_to.new", "required": True, "allow_none": False},
+        ],
+        ActivityActionType.TASK_DETAILS_UPDATED: [
+            {"path": "*", "required": True, "non_empty": True},
+        ],
+        ActivityActionType.USER_ADDED_TO_TEAM: [
+            {"path": "user_id", "required": True, "type": dict},
+            {"path": "team_id", "required": True, "type": dict},
+            {"path": "user_id.new", "required": True, "allow_none": False},
+            {"path": "team_id.new", "required": True, "allow_none": False},
+        ],
+        ActivityActionType.USER_REMOVED_FROM_TEAM: [
+            {"path": "user_id", "required": True, "type": dict},
+            {"path": "team_id", "required": True, "type": dict},
+        ],
+    }
+
     user = ActivityLogUserSerializer(read_only=True)
     target_display = serializers.SerializerMethodField()
     message = serializers.SerializerMethodField()
@@ -80,29 +109,37 @@ class ActivityLogSerializer(serializers.ModelSerializer):
         return self._generic_message(user_label, obj.action_type, obj.target_type)
 
     def _validate_metadata(self, obj, metadata):
-        action_type = obj.action_type
+        rules = self.EXPECTED_METADATA.get(obj.action_type, [])
+        for rule in rules:
+            if rule.get("path") == "*":
+                if rule.get("non_empty") and not metadata:
+                    self._raise_invalid(obj.action_type, "expected non-empty metadata")
+                continue
 
-        if action_type == ActivityActionType.TASK_STATUS_CHANGED:
-            status_change = metadata.get("status")
-            if not isinstance(status_change, dict) or status_change.get("old") is None or status_change.get("new") is None:
-                self._raise_invalid(action_type, "expected metadata['status'] with 'old' and 'new'")
+            exists, value = self._get_nested_value(metadata, rule["path"])
+            if rule.get("required") and not exists:
+                self._raise_invalid(obj.action_type, f"missing required metadata path '{rule['path']}'")
 
-        elif action_type in (ActivityActionType.TASK_ASSIGNED, ActivityActionType.TASK_REASSIGNED):
-            assigned_change = metadata.get("assigned_to")
-            if not isinstance(assigned_change, dict) or assigned_change.get("new") is None:
-                self._raise_invalid(action_type, "expected metadata['assigned_to'] with at least 'new'")
-            if action_type == ActivityActionType.TASK_REASSIGNED and assigned_change.get("old") is None:
-                self._raise_invalid(action_type, "expected metadata['assigned_to'] with 'old' and 'new'")
+            if not exists:
+                continue
 
-        elif action_type == ActivityActionType.TASK_DETAILS_UPDATED:
-            if not metadata:
-                self._raise_invalid(action_type, "expected non-empty metadata")
+            if not rule.get("allow_none", True) and value is None:
+                self._raise_invalid(obj.action_type, f"metadata path '{rule['path']}' cannot be null")
 
-        elif action_type in (ActivityActionType.USER_ADDED_TO_TEAM, ActivityActionType.USER_REMOVED_FROM_TEAM):
-            user_change = metadata.get("user_id")
-            team_change = metadata.get("team_id")
-            if not isinstance(user_change, dict) or not isinstance(team_change, dict):
-                self._raise_invalid(action_type, "expected metadata['user_id'] and metadata['team_id']")
+            expected_type = rule.get("type")
+            if expected_type and value is not None and not isinstance(value, expected_type):
+                self._raise_invalid(obj.action_type, f"metadata path '{rule['path']}' must be {expected_type.__name__}")
+
+    def _get_nested_value(self, payload, path):
+        if not isinstance(payload, dict):
+            return False, None
+
+        node = payload
+        for key in path.split("."):
+            if not isinstance(node, dict) or key not in node:
+                return False, None
+            node = node[key]
+        return True, node
 
     def _raise_invalid(self, action_type, detail):
         raise ValueError(f"Invalid activity log metadata for {action_type}: {detail}")

@@ -30,19 +30,81 @@ class ActivityTargetType:
     USER = "USER"
 
 
-def log_activity(user, action_type, target_type, target_id, metadata=None):
-    if not user or not getattr(user, "is_authenticated", False):
-        return
+class ActivityLogService:
+    @staticmethod
+    def _normalize_metadata(metadata):
+        return metadata if isinstance(metadata, dict) else {}
 
-    payload = metadata if isinstance(metadata, dict) else {}
+    @classmethod
+    def create_log(cls, *, user, action_type, target_type, target_id, metadata=None):
+        if not user or not getattr(user, "is_authenticated", False):
+            return None
 
-    def _create_log():
-        ActivityLog.objects.create(
+        return ActivityLog.objects.create(
             user=user,
             action_type=action_type,
             target_type=target_type,
             target_id=target_id,
-            metadata=payload,
+            metadata=cls._normalize_metadata(metadata),
         )
 
-    transaction.on_commit(_create_log)
+    @classmethod
+    def enqueue_log(cls, *, user, action_type, target_type, target_id, metadata=None):
+        if not user or not getattr(user, "is_authenticated", False):
+            return
+
+        payload = cls._normalize_metadata(metadata)
+
+        def _create_log():
+            cls.create_log(
+                user=user,
+                action_type=action_type,
+                target_type=target_type,
+                target_id=target_id,
+                metadata=payload,
+            )
+
+        transaction.on_commit(_create_log)
+
+    @classmethod
+    def log_task_status_change(cls, *, user, task, old, new):
+        return cls.enqueue_log(
+            user=user,
+            action_type=ActivityActionType.TASK_STATUS_CHANGED,
+            target_type=ActivityTargetType.TASK,
+            target_id=task.id,
+            metadata={"status": {"old": old, "new": new}},
+        )
+
+    @classmethod
+    def log_team_member_removed(cls, *, user, team_id, removed_user_id):
+        return cls.enqueue_log(
+            user=user,
+            action_type=ActivityActionType.USER_REMOVED_FROM_TEAM,
+            target_type=ActivityTargetType.TEAM,
+            target_id=team_id,
+            metadata={
+                "user_id": {"old": removed_user_id, "new": None},
+                "team_id": {"old": team_id, "new": team_id},
+            },
+        )
+
+    @classmethod
+    def log_project_assigned(cls, *, user, project_id, assigned_user_id):
+        return cls.enqueue_log(
+            user=user,
+            action_type=ActivityActionType.USER_ASSIGNED_TO_PROJECT,
+            target_type=ActivityTargetType.PROJECT,
+            target_id=project_id,
+            metadata={"user_id": {"old": None, "new": assigned_user_id}},
+        )
+
+
+def log_activity(user, action_type, target_type, target_id, metadata=None):
+    ActivityLogService.enqueue_log(
+        user=user,
+        action_type=action_type,
+        target_type=target_type,
+        target_id=target_id,
+        metadata=metadata,
+    )

@@ -37,25 +37,37 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = (
+        base_queryset = self._base_queryset()
+
+        if not user.is_authenticated:
+            return base_queryset.none()
+
+        if user.role == User.Role.ADMIN:
+            return self._admin_queryset(user)
+
+        if user.role == User.Role.MANAGER:
+            return self._manager_queryset(user)
+
+        if user.role == User.Role.EMPLOYEE:
+            return self._employee_queryset(user)
+
+        return base_queryset.none()
+
+    def _base_queryset(self):
+        return (
             ActivityLog.objects.select_related("user")
             .annotate(metadata_text=Cast("metadata", TextField()))
             .order_by("-created_at")
         )
 
-        if not user.is_authenticated:
-            return queryset.none()
+    def _admin_queryset(self, user):
+        return self._base_queryset()
 
-        if user.role == User.Role.ADMIN:
-            return queryset
+    def _manager_queryset(self, user):
+        return self._base_queryset().filter(self._manager_visibility_q(user))
 
-        if user.role == User.Role.MANAGER:
-            return queryset.filter(self._manager_visibility_q(user))
-
-        if user.role == User.Role.EMPLOYEE:
-            return queryset.filter(self._employee_visibility_q(user))
-
-        return queryset.none()
+    def _employee_queryset(self, user):
+        return self._base_queryset().filter(self._employee_visibility_q(user))
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
