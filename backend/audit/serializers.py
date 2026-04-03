@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from accounts.models import User
 
+from .metadata_validation import validate_activity_metadata
 from .models import ActivityLog
 from .services import ActivityActionType, ActivityTargetType
 
@@ -19,35 +20,6 @@ class ActivityLogUserSerializer(serializers.ModelSerializer):
 
 
 class ActivityLogSerializer(serializers.ModelSerializer):
-    EXPECTED_METADATA = {
-        ActivityActionType.TASK_STATUS_CHANGED: [
-            {"path": "status.old", "required": True, "allow_none": False},
-            {"path": "status.new", "required": True, "allow_none": False},
-        ],
-        ActivityActionType.TASK_ASSIGNED: [
-            {"path": "assigned_to", "required": True, "type": dict},
-            {"path": "assigned_to.new", "required": True, "allow_none": False},
-        ],
-        ActivityActionType.TASK_REASSIGNED: [
-            {"path": "assigned_to", "required": True, "type": dict},
-            {"path": "assigned_to.old", "required": True, "allow_none": False},
-            {"path": "assigned_to.new", "required": True, "allow_none": False},
-        ],
-        ActivityActionType.TASK_DETAILS_UPDATED: [
-            {"path": "*", "required": True, "non_empty": True},
-        ],
-        ActivityActionType.USER_ADDED_TO_TEAM: [
-            {"path": "user_id", "required": True, "type": dict},
-            {"path": "team_id", "required": True, "type": dict},
-            {"path": "user_id.new", "required": True, "allow_none": False},
-            {"path": "team_id.new", "required": True, "allow_none": False},
-        ],
-        ActivityActionType.USER_REMOVED_FROM_TEAM: [
-            {"path": "user_id", "required": True, "type": dict},
-            {"path": "team_id", "required": True, "type": dict},
-        ],
-    }
-
     user = ActivityLogUserSerializer(read_only=True)
     target_display = serializers.SerializerMethodField()
     message = serializers.SerializerMethodField()
@@ -109,37 +81,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
         return self._generic_message(user_label, obj.action_type, obj.target_type)
 
     def _validate_metadata(self, obj, metadata):
-        rules = self.EXPECTED_METADATA.get(obj.action_type, [])
-        for rule in rules:
-            if rule.get("path") == "*":
-                if rule.get("non_empty") and not metadata:
-                    self._raise_invalid(obj.action_type, "expected non-empty metadata")
-                continue
-
-            exists, value = self._get_nested_value(metadata, rule["path"])
-            if rule.get("required") and not exists:
-                self._raise_invalid(obj.action_type, f"missing required metadata path '{rule['path']}'")
-
-            if not exists:
-                continue
-
-            if not rule.get("allow_none", True) and value is None:
-                self._raise_invalid(obj.action_type, f"metadata path '{rule['path']}' cannot be null")
-
-            expected_type = rule.get("type")
-            if expected_type and value is not None and not isinstance(value, expected_type):
-                self._raise_invalid(obj.action_type, f"metadata path '{rule['path']}' must be {expected_type.__name__}")
-
-    def _get_nested_value(self, payload, path):
-        if not isinstance(payload, dict):
-            return False, None
-
-        node = payload
-        for key in path.split("."):
-            if not isinstance(node, dict) or key not in node:
-                return False, None
-            node = node[key]
-        return True, node
+        validate_activity_metadata(obj.action_type, metadata, strict=True)
 
     def _raise_invalid(self, action_type, detail):
         raise ValueError(f"Invalid activity log metadata for {action_type}: {detail}")

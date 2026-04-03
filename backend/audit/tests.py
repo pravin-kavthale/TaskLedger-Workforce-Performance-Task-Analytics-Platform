@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from accounts.models import User
 from audit.models import ActivityLog
 from audit.serializers import ActivityLogSerializer
-from audit.services import ActivityActionType, ActivityTargetType
+from audit.services import ActivityActionType, ActivityLogService, ActivityTargetType
 from organization.models import Department, Team
 from work.models import Assignment, Project, Task
 
@@ -129,21 +129,21 @@ class ActivityLogAPITests(APITestCase):
             status=Task.Status.TODO,
         )
 
-        self.log_task_a = ActivityLog.objects.create(
+        self.log_task_a = ActivityLogService.create_log(
             user=self.employee_user_1,
             action_type=ActivityActionType.TASK_STATUS_CHANGED,
             target_type=ActivityTargetType.TASK,
             target_id=self.task_a.id,
             metadata={"status": {"old": "TODO", "new": "DONE"}},
         )
-        self.log_task_b = ActivityLog.objects.create(
+        self.log_task_b = ActivityLogService.create_log(
             user=self.other_manager,
             action_type=ActivityActionType.TASK_STATUS_CHANGED,
             target_type=ActivityTargetType.TASK,
             target_id=self.task_b.id,
             metadata={"status": {"old": "TODO", "new": "DONE"}},
         )
-        self.log_team_a = ActivityLog.objects.create(
+        self.log_team_a = ActivityLogService.create_log(
             user=self.manager_user,
             action_type=ActivityActionType.USER_ADDED_TO_TEAM,
             target_type=ActivityTargetType.TEAM,
@@ -153,7 +153,7 @@ class ActivityLogAPITests(APITestCase):
                 "team_id": {"old": None, "new": self.team_a.id},
             },
         )
-        self.log_team_b = ActivityLog.objects.create(
+        self.log_team_b = ActivityLogService.create_log(
             user=self.other_manager,
             action_type=ActivityActionType.USER_REMOVED_FROM_TEAM,
             target_type=ActivityTargetType.TEAM,
@@ -163,14 +163,14 @@ class ActivityLogAPITests(APITestCase):
                 "team_id": {"old": self.team_b.id, "new": self.team_b.id},
             },
         )
-        self.log_project_a = ActivityLog.objects.create(
+        self.log_project_a = ActivityLogService.create_log(
             user=self.manager_user,
             action_type=ActivityActionType.PROJECT_CREATED,
             target_type=ActivityTargetType.PROJECT,
             target_id=self.project_a.id,
             metadata={"name": {"old": None, "new": self.project_a.name}},
         )
-        self.log_project_b = ActivityLog.objects.create(
+        self.log_project_b = ActivityLogService.create_log(
             user=self.other_manager,
             action_type=ActivityActionType.PROJECT_CREATED,
             target_type=ActivityTargetType.PROJECT,
@@ -239,6 +239,45 @@ class ActivityLogAPITests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 0)
         self.assertEqual(response.data["results"], [])
+
+    def test_mixed_role_manager_visibility_has_no_overexposure_or_duplicates(self):
+        Assignment.objects.create(
+            project=self.project_b,
+            user=self.manager_user,
+            role=Assignment.Role.SOFTWARE_ENGINEER,
+            assigned_by=self.other_manager,
+            is_active=True,
+        )
+        task_b_for_manager = Task.objects.create(
+            project=self.project_b,
+            assigned_to=self.manager_user,
+            title="Cross-team support task",
+            description="Temporary support",
+            priority=Task.Priority.MEDIUM,
+            estimated_hours=2,
+            created_by=self.other_manager,
+            status=Task.Status.TODO,
+        )
+        hidden_log = ActivityLogService.create_log(
+            user=self.other_manager,
+            action_type=ActivityActionType.TASK_STATUS_CHANGED,
+            target_type=ActivityTargetType.TASK,
+            target_id=task_b_for_manager.id,
+            metadata={"status": {"old": "TODO", "new": "DONE"}},
+        )
+
+        self._login(self.manager_user)
+        response = self._get_list()
+        self.assertEqual(response.status_code, 200)
+        results = response.data["results"]
+        returned_ids = [item["id"] for item in results]
+
+        self.assertEqual(len(returned_ids), len(set(returned_ids)))
+        self.assertIn(self.log_project_a.id, returned_ids)
+        self.assertIn(self.log_team_a.id, returned_ids)
+        self.assertNotIn(self.log_project_b.id, returned_ids)
+        self.assertNotIn(self.log_team_b.id, returned_ids)
+        self.assertNotIn(hidden_log.id, returned_ids)
 
     def test_target_display_resolves_task_and_project_names(self):
         self._login(self.admin_user)
@@ -345,7 +384,7 @@ class ActivityLogAPITests(APITestCase):
 
     def test_pagination_returns_twenty_results_and_next_page(self):
         for index in range(25):
-            ActivityLog.objects.create(
+            ActivityLogService.create_log(
                 user=self.admin_user,
                 action_type=ActivityActionType.TASK_DETAILS_UPDATED,
                 target_type=ActivityTargetType.TASK,

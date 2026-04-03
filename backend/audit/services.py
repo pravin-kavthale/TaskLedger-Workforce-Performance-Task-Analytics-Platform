@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.db import transaction
 
+from .metadata_validation import validate_activity_metadata
 from .models import ActivityLog
 
 
@@ -36,16 +38,27 @@ class ActivityLogService:
         return metadata if isinstance(metadata, dict) else {}
 
     @classmethod
+    def _validate_for_write(cls, action_type, metadata):
+        return validate_activity_metadata(
+            action_type,
+            metadata,
+            strict=settings.DEBUG,
+            mark_invalid_safe=not settings.DEBUG,
+        )
+
+    @classmethod
     def create_log(cls, *, user, action_type, target_type, target_id, metadata=None):
         if not user or not getattr(user, "is_authenticated", False):
             return None
+
+        payload, _ = cls._validate_for_write(action_type, cls._normalize_metadata(metadata))
 
         return ActivityLog.objects.create(
             user=user,
             action_type=action_type,
             target_type=target_type,
             target_id=target_id,
-            metadata=cls._normalize_metadata(metadata),
+            metadata=payload,
         )
 
     @classmethod
@@ -53,7 +66,7 @@ class ActivityLogService:
         if not user or not getattr(user, "is_authenticated", False):
             return
 
-        payload = cls._normalize_metadata(metadata)
+        payload, _ = cls._validate_for_write(action_type, cls._normalize_metadata(metadata))
 
         def _create_log():
             cls.create_log(
@@ -96,7 +109,10 @@ class ActivityLogService:
             action_type=ActivityActionType.USER_ASSIGNED_TO_PROJECT,
             target_type=ActivityTargetType.PROJECT,
             target_id=project_id,
-            metadata={"user_id": {"old": None, "new": assigned_user_id}},
+            metadata={
+                "user_id": {"old": None, "new": assigned_user_id},
+                "project_id": {"old": None, "new": project_id},
+            },
         )
 
 
