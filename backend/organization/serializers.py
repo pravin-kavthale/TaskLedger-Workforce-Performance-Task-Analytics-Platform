@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from accounts.models import User
 from .models import Department, Team
+from core.permissions.services import PermissionService
 
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,7 +12,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
     def validate(self,attrs):
         request_user = self.context['request'].user
-        if request_user.role != User.Role.ADMIN:
+        if not PermissionService.is_admin(request_user):
             raise serializers.ValidationError("Only Admin users can create a department.")
         return attrs
         
@@ -33,7 +34,7 @@ class TeamSerializer(serializers.ModelSerializer):
         ]
     
     def validate_manager(self, manager):
-        if manager.role != User.Role.MANAGER:
+        if not PermissionService.is_manager(manager):
             raise serializers.ValidationError(
                 "Selected user must have MANAGER role."
             )

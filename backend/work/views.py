@@ -1,10 +1,10 @@
 from rest_framework import viewsets, mixins
 
-from .helper import is_admin, is_manager, is_project_employee, is_project_manager_of_project, is_team_member
 from . models import Assignment, Project, Task
 from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
 
 from core.permissions import ProjectPermission, AssignmentPermission, TaskPermission, UserProjectPermission
+from core.permissions.services import PermissionService
 
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -59,11 +59,7 @@ class ProjectViewSet(
         user = self.request.user
         if not user.is_authenticated:
             return Project.objects.none()
-        if is_admin(user):
-            return Project.objects.all()
-        if is_manager(user):
-            return Project.objects.filter(manager=user)
-        return Project.objects.filter(assignments__user=user, assignments__is_active=True).distinct()
+        return PermissionService.scope_projects(user, Project.objects.all())
 
     def perform_create(self, serializer):
         project = serializer.save(created_by=self.request.user)
@@ -119,17 +115,16 @@ class AssignmentViewSet(
 
     def get_queryset(self):
         user = self.request.user
-        if is_admin(user):
-            return Assignment.objects.select_related("project", "user", "assigned_by")
-        if is_manager(user):
-            return Assignment.objects.select_related("project", "user", "assigned_by").filter(project__manager_id=user.id)
-        return Assignment.objects.filter(user=user)
+        return PermissionService.scope_assignments(
+            user,
+            Assignment.objects.select_related("project", "user", "assigned_by"),
+        )
 
     def perform_create(self, serializer):
         user = self.request.user
         project = serializer.validated_data["project"]
         assignee = serializer.validated_data["user"]
-        if not is_team_member(assignee, project.team):
+        if not PermissionService.is_team_member(assignee, project.team):
             raise PermissionDenied("User does not belong to this project's team.")
         assignment = serializer.save(assigned_by=user)
         log_activity(
@@ -148,7 +143,7 @@ class AssignmentViewSet(
         assignment = self.get_object()
         project = assignment.project
         assignee = serializer.validated_data.get("user", assignment.user)
-        if not is_team_member(assignee, project.team):
+        if not PermissionService.is_team_member(assignee, project.team):
             raise PermissionDenied("User does not belong to this project's team.")
         tracked_fields = ["user", "role", "is_active"]
         changes = _extract_changes(assignment, serializer.validated_data, tracked_fields)
@@ -186,13 +181,12 @@ class UserProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if not user_pk:
             return Assignment.objects.none()
         status = self.request.query_params.get("status")
-        if status == "current":
-            is_active = True
-        elif status in ("history", "previous", "completed"):
-            is_active = False
-        else:
-            return Assignment.objects.none()
-        return Assignment.objects.filter(user_id=user_pk, is_active=is_active).select_related("project", "assigned_by")
+        return PermissionService.scope_user_assignments(
+            self.request.user,
+            user_pk,
+            Assignment.objects.select_related("project", "assigned_by"),
+            status=status,
+        )
     
 class ProjectMemberViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ProjectMemberSerializer
@@ -204,13 +198,12 @@ class ProjectMemberViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if project_id is None:
             return Assignment.objects.none()
         status = self.request.query_params.get("status")
-        if status == "current":
-            is_active = True
-        elif status in ("history", "previous", "completed"):
-            is_active = False
-        else:
-            return Assignment.objects.none()
-        return Assignment.objects.filter(project_id=project_id, is_active=is_active).select_related("user", "assigned_by")
+        return PermissionService.scope_project_assignments(
+            self.request.user,
+            project_id,
+            Assignment.objects.select_related("user", "assigned_by"),
+            status=status,
+        )
 
 class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ProjectSerializer
@@ -226,9 +219,9 @@ class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             user_pk_int = int(user_pk)
         except ValueError:
             return Project.objects.none()
-        if requester.role == User.Role.EMPLOYEE:
+        if PermissionService.is_employee(requester):
             raise PermissionDenied("Employees cannot access this endpoint.")
-        if is_manager(requester) and requester.id != user_pk_int:
+        if not PermissionService.can_view_manager_projects(requester, user_pk_int):
             raise PermissionDenied("Managers can view only their own projects.")
         return Project.objects.filter(manager_id=user_pk_int)
 
@@ -243,13 +236,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         if not project_id:
             return Task.objects.none()
         qs = Task.objects.select_related("project", "assigned_to", "created_by").filter(project_id=project_id)
-        if is_admin(user):
-            return qs
-        is_pm = is_project_manager_of_project(user, project_id)
-        is_member = Assignment.objects.filter(project_id=project_id, user=user, is_active=True).exists()
-        if is_pm or is_member:
-            return qs
-        return Task.objects.none()
+        return PermissionService.scope_tasks(user, qs)
     
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

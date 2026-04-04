@@ -39,6 +39,70 @@ class PermissionService:
             return queryset.filter(role=User.Role.EMPLOYEE)
         return queryset.none()
 
+    @staticmethod
+    def scope_projects(user, queryset):
+        if PermissionService.is_admin(user):
+            return queryset
+        if PermissionService.is_manager(user):
+            return queryset.filter(manager=user)
+        if PermissionService.is_employee(user):
+            return queryset.filter(assignments__user=user, assignments__is_active=True).distinct()
+        return queryset.none()
+
+    @staticmethod
+    def scope_tasks(user, queryset):
+        if PermissionService.is_admin(user):
+            return queryset
+        if PermissionService.is_manager(user):
+            return queryset.filter(project__manager=user)
+        if PermissionService.is_employee(user):
+            return queryset.filter(assigned_to=user)
+        return queryset.none()
+
+    @staticmethod
+    def scope_assignments(user, queryset):
+        if PermissionService.is_admin(user):
+            return queryset
+        if PermissionService.is_manager(user):
+            return queryset.filter(project__manager=user)
+        if PermissionService.is_employee(user):
+            return queryset.filter(user=user)
+        return queryset.none()
+
+    @staticmethod
+    def scope_user_assignments(user, target_user_id, queryset, *, status=None):
+        if status == "current":
+            queryset = queryset.filter(is_active=True)
+        elif status in ("history", "previous", "completed"):
+            queryset = queryset.filter(is_active=False)
+        else:
+            return queryset.none()
+
+        queryset = queryset.filter(user_id=target_user_id)
+        return PermissionService.scope_assignments(user, queryset)
+
+    @staticmethod
+    def scope_project_assignments(user, project_id, queryset, *, status=None):
+        if status == "current":
+            queryset = queryset.filter(is_active=True)
+        elif status in ("history", "previous", "completed"):
+            queryset = queryset.filter(is_active=False)
+        else:
+            return queryset.none()
+
+        queryset = queryset.filter(project_id=project_id)
+        return PermissionService.scope_assignments(user, queryset)
+
+    @staticmethod
+    def scope_teams(user, queryset):
+        if PermissionService.is_admin(user):
+            return queryset
+        if PermissionService.is_manager(user):
+            return queryset.filter(manager=user)
+        if PermissionService.is_employee(user):
+            return queryset.filter(members=user).distinct()
+        return queryset.none()
+
     # ---------------- USER ---------------- #
 
     @staticmethod
@@ -54,6 +118,12 @@ class PermissionService:
         if PermissionService.is_admin(user):
             return True
         return str(getattr(user, "id", None)) == str(target_user_id)
+
+    @staticmethod
+    def can_view_manager_projects(user, manager_id):
+        if PermissionService.is_admin(user):
+            return True
+        return PermissionService.is_manager(user) and str(getattr(user, "id", None)) == str(manager_id)
 
     # ---------------- TEAM ---------------- #
 
@@ -79,6 +149,10 @@ class PermissionService:
             return True
         if team.manager_id == user.id:
             return True
+        return team.members.filter(id=user.id).exists()
+
+    @staticmethod
+    def is_team_member(user, team):
         return team.members.filter(id=user.id).exists()
 
     # ---------------- PROJECT ---------------- #
@@ -108,6 +182,14 @@ class PermissionService:
         return Assignment.objects.filter(
             project=project, user=user, is_active=True
         ).exists()
+
+    @staticmethod
+    def is_project_member(user, project):
+        return Assignment.objects.filter(project=project, user=user, is_active=True).exists()
+
+    @staticmethod
+    def is_project_member_for_id(user, project_id):
+        return Assignment.objects.filter(project_id=project_id, user=user, is_active=True).exists()
 
     @staticmethod
     def can_view_project_for_id(user, project_id):

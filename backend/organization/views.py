@@ -1,9 +1,9 @@
 from rest_framework import viewsets, mixins
 
-from work.helper import is_admin, is_manager
 from . models import Department, Team
 from . serializers import DepartmentSerializer, TeamSerializer, TeamAssignUserSerializer
 from core.permissions import TeamPermission, IsAdmin, IsAdminOrTeamManager
+from core.permissions.services import PermissionService
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
@@ -12,7 +12,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from .services.team_service import assign_user_to_team
 from audit.services import ActivityActionType, ActivityTargetType, log_activity
-from work.helper import is_manager
 
 
 class DepartmentViewSet(
@@ -55,19 +54,13 @@ class TeamViewSet(
         if not user.is_authenticated:
             return Team.objects.none()
 
-        if is_admin(user) or self.action in ['retrieve', 'assign_user']:
-            return Team.objects.all()
-        
-        if is_manager(user):
-            return Team.objects.filter(manager=user)
-
-        return Team.objects.none()
+        return PermissionService.scope_teams(user, Team.objects.all())
     
     def perform_create(self, serializer):
         request_user = self.request.user
         manager = serializer.validated_data.get("manager")
         if not manager:
-            if is_manager(request_user):
+            if PermissionService.is_manager(request_user):
                 manager = request_user
             else:
                 raise PermissionDenied("Admin must specify a manager for the team.")

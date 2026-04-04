@@ -1,12 +1,11 @@
 from rest_framework import serializers
 
-from accounts.models import User
 from .models import Project 
 from rest_framework import serializers
 from .models import Project, Assignment, Task
 from django.core.exceptions import ValidationError,PermissionDenied
 
-from .helper import is_admin, is_project_employee, is_project_manager, is_team_member
+from core.permissions.services import PermissionService
 
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,8 +40,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         if not team:
             raise serializers.ValidationError("Team is required.")
-        # Rule 1: Only ADMIN or team manager can create project
-        if user.role != User.Role.ADMIN and team.manager != user:
+        if not PermissionService.can_create_project(user, team):
             raise PermissionDenied(
                 "Only ADMIN or the Team Manager can create a project."
             )
@@ -84,12 +82,12 @@ class AssignmentSerializer(serializers.ModelSerializer):
         project  = attrs.get('project')
         assigne = attrs.get('user')
         
-        if user != project.manager and user.role != User.Role.ADMIN:
+        if not PermissionService.can_assign_user(user, project):
             raise serializers.ValidationError(
                 "Only the project manager or ADMIN can assign users."
             )
         
-        if assigne and not is_team_member(assigne, team=project.team):
+        if assigne and not PermissionService.is_team_member(assigne, project.team):
             raise serializers.ValidationError(
                 "Assignee must be a member of the project team."
             )
@@ -163,11 +161,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         project_id = request.parser_context["kwargs"]["project_pk"]
 
-        if not Assignment.objects.filter(
-            project_id=project_id,
-            user=user,
-            is_active=True
-        ).exists():
+        if not PermissionService.is_project_member_for_id(user, project_id):
             raise serializers.ValidationError(
                 "Assignee must belong to this project."
             )
@@ -192,12 +186,14 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
         task = self.instance
         project = task.project
 
-        # ADMIN → unrestricted
-        if is_admin(user):
+        if PermissionService.is_admin(user):
             return attrs
 
+        if not PermissionService.can_update_task(user, task):
+            raise PermissionDenied("You do not have permission to update this task.")
+
         # EMPLOYEE rules
-        if user.role == User.Role.EMPLOYEE:
+        if PermissionService.is_employee(user):
             illegal_fields = set(attrs.keys()) - {"status"}
             if illegal_fields:
                 raise serializers.ValidationError(
@@ -222,8 +218,7 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
 
             return attrs
 
-        # MANAGER rules
-        if is_project_manager(user, project):
+        if PermissionService.can_update_project(user, project):
             new_status = attrs.get("status")
 
             if task.status == Task.Status.DONE:
@@ -242,17 +237,15 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
         task = self.instance
         project = task.project
 
-        # ADMIN → unrestricted
-        if is_admin(user):
+        if PermissionService.is_admin(user):
             return new_user
 
-        # MANAGER only, and only within project
-        if not is_project_manager(user, project):
+        if not PermissionService.can_update_project(user, project):
             raise serializers.ValidationError(
                 "Only the project manager can reassign tasks."
             )
 
-        if not is_project_employee(new_user, project):
+        if not PermissionService.is_project_member(new_user, project):
             raise serializers.ValidationError(
                 "Assignee must belong to the same project."
             )
