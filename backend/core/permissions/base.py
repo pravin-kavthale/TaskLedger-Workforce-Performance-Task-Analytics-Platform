@@ -1,28 +1,23 @@
 from rest_framework.permissions import BasePermission
-from backend.accounts.models import User
+from accounts.models import User
+from .services import PermissionService
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == User.Role.ADMIN
+        return PermissionService.is_admin(request.user)
 
 class IsManager(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == User.Role.MANAGER
+        return PermissionService.is_manager(request.user)
 
 class IsEmployee(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == User.Role.EMPLOYEE
+        return PermissionService.is_employee(request.user)
     
 class IsAdminOrManager(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role in [
-            User.Role.ADMIN,
-            User.Role.MANAGER
-        ]
+        return PermissionService.can_manage_users(request.user)
     
 class IsSelfOrAdmin(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return (
-            request.user.role == "ADMIN"
-            or obj == request.user
-        )
+        return PermissionService.is_admin(request.user) or obj == request.user

@@ -1,8 +1,6 @@
-from django.shortcuts import render
 from rest_framework import viewsets, mixins
 
-from accounts.models import User
-from work.helper import is_admin
+from work.helper import is_admin, is_manager
 from . models import Department, Team
 from . serializers import DepartmentSerializer, TeamSerializer, TeamAssignUserSerializer
 from core.permissions import TeamPermission, IsAdmin, IsAdminOrTeamManager
@@ -14,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from .services.team_service import assign_user_to_team
 from audit.services import ActivityActionType, ActivityTargetType, log_activity
+from work.helper import is_manager
 
 
 class DepartmentViewSet(
@@ -59,7 +58,7 @@ class TeamViewSet(
         if is_admin(user) or self.action in ['retrieve', 'assign_user']:
             return Team.objects.all()
         
-        if user.role == User.Role.MANAGER:
+        if is_manager(user):
             return Team.objects.filter(manager=user)
 
         return Team.objects.none()
@@ -68,7 +67,7 @@ class TeamViewSet(
         request_user = self.request.user
         manager = serializer.validated_data.get("manager")
         if not manager:
-            if request_user.role == User.Role.MANAGER:
+            if is_manager(request_user):
                 manager = request_user
             else:
                 raise PermissionDenied("Admin must specify a manager for the team.")

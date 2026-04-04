@@ -1,7 +1,6 @@
-from django.shortcuts import render
 from rest_framework import viewsets, mixins
 
-from .helper import is_admin, is_project_employee, is_project_manager, is_team_member
+from .helper import is_admin, is_manager, is_project_employee, is_project_manager_of_project, is_team_member
 from . models import Assignment, Project, Task
 from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
 
@@ -60,9 +59,9 @@ class ProjectViewSet(
         user = self.request.user
         if not user.is_authenticated:
             return Project.objects.none()
-        if user.role == User.Role.ADMIN:
+        if is_admin(user):
             return Project.objects.all()
-        if user.role == User.Role.MANAGER:
+        if is_manager(user):
             return Project.objects.filter(manager=user)
         return Project.objects.filter(assignments__user=user, assignments__is_active=True).distinct()
 
@@ -122,7 +121,7 @@ class AssignmentViewSet(
         user = self.request.user
         if is_admin(user):
             return Assignment.objects.select_related("project", "user", "assigned_by")
-        if user.role == User.Role.MANAGER:
+        if is_manager(user):
             return Assignment.objects.select_related("project", "user", "assigned_by").filter(project__manager_id=user.id)
         return Assignment.objects.filter(user=user)
 
@@ -229,7 +228,7 @@ class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             return Project.objects.none()
         if requester.role == User.Role.EMPLOYEE:
             raise PermissionDenied("Employees cannot access this endpoint.")
-        if requester.role == User.Role.MANAGER and requester.id != user_pk_int:
+        if is_manager(requester) and requester.id != user_pk_int:
             raise PermissionDenied("Managers can view only their own projects.")
         return Project.objects.filter(manager_id=user_pk_int)
 
@@ -246,7 +245,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         qs = Task.objects.select_related("project", "assigned_to", "created_by").filter(project_id=project_id)
         if is_admin(user):
             return qs
-        is_pm = Project.objects.filter(id=project_id, manager=user).exists()
+        is_pm = is_project_manager_of_project(user, project_id)
         is_member = Assignment.objects.filter(project_id=project_id, user=user, is_active=True).exists()
         if is_pm or is_member:
             return qs

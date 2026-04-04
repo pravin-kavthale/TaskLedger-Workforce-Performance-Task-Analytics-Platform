@@ -42,7 +42,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         if not team:
             raise serializers.ValidationError("Team is required.")
         # Rule 1: Only ADMIN or team manager can create project
-        if user.role != "ADMIN" and team.manager != user:
+        if user.role != User.Role.ADMIN and team.manager != user:
             raise PermissionDenied(
                 "Only ADMIN or the Team Manager can create a project."
             )

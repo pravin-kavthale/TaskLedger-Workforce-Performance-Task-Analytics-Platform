@@ -3,9 +3,8 @@ from requests import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 
-from work.helper import is_admin
+from core.permissions.services import PermissionService
 from .models import User
-from .services import can_assign_role
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = "email"
@@ -23,7 +22,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class BaseUserRoleValidationMixin:
     def validate_role(self, value):
         request_user = self.context['request'].user
-        if not can_assign_role(request_user, value):
+        if not PermissionService.can_assign_role(request_user, value):
             raise serializers.ValidationError("You cannot assign this role")
         return value
 
@@ -69,13 +68,13 @@ class UpdateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSeriali
         if new_team is not None:
             # Case 1: user has no team yet → allow admin or manager of target team
             if instance.team is None:
-                if not is_admin(current_user) and new_team.manager != current_user:
+                if not PermissionService.is_admin(current_user) and new_team.manager != current_user:
                     raise serializers.ValidationError(
                         "Only admin or manager of the target team can assign this user."
                     )
             # Case 2: user already has a team → cant change team directly, must contact admin
             else:
-                if not is_admin(current_user):
+                if not PermissionService.is_admin(current_user):
                     raise serializers.ValidationError(
                         "user already has a team, cannot change team directly. Please contact admin."
                     )

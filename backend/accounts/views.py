@@ -1,13 +1,18 @@
-from django.shortcuts import render
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import CustomTokenObtainPairSerializer, UserReadSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from core.permissions import UserPermission
-from .serializers import CreateUserSerializer, CurrentUserSerializer, UpdateUserSerializer, UserReadSerializer
-from .models import User 
+from core.permissions.services import PermissionService
+from .serializers import (
+    CreateUserSerializer,
+    CurrentUserSerializer,
+    CustomTokenObtainPairSerializer,
+    UpdateUserSerializer,
+    UserReadSerializer,
+)
+from .models import User
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -36,11 +41,7 @@ class CreateUserView(APIView):
     permission_classes = [UserPermission]
     
     def get(self, request):
-        users = User.objects.all()
-
-        # Managers can only see employees
-        if request.user.role == User.Role.MANAGER:
-            users = users.filter(role=User.Role.EMPLOYEE)
+        users = PermissionService.scope_visible_users(request.user, User.objects.all())
 
         serializer = UserReadSerializer(users, many=True)
         return Response(serializer.data, status=200)

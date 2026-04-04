@@ -1,5 +1,6 @@
 from accounts.models import User
-from work.models import Assignment
+from organization.models import Team
+from work.models import Assignment, Project, Task
 
 
 class PermissionService:
@@ -8,15 +9,35 @@ class PermissionService:
 
     @staticmethod
     def is_admin(user):
-        return user.role == User.Role.ADMIN
+        return bool(user) and user.role == User.Role.ADMIN
 
     @staticmethod
     def is_manager(user):
-        return user.role == User.Role.MANAGER
+        return bool(user) and user.role == User.Role.MANAGER
 
     @staticmethod
     def is_employee(user):
-        return user.role == User.Role.EMPLOYEE
+        return bool(user) and user.role == User.Role.EMPLOYEE
+
+    @staticmethod
+    def can_assign_role(user, target_role):
+        if PermissionService.is_admin(user):
+            return True
+        if PermissionService.is_manager(user):
+            return target_role == User.Role.EMPLOYEE
+        return False
+
+    @staticmethod
+    def can_manage_users(user):
+        return PermissionService.is_admin(user) or PermissionService.is_manager(user)
+
+    @staticmethod
+    def scope_visible_users(user, queryset):
+        if PermissionService.is_admin(user):
+            return queryset
+        if PermissionService.is_manager(user):
+            return queryset.filter(role=User.Role.EMPLOYEE)
+        return queryset.none()
 
     # ---------------- USER ---------------- #
 
@@ -28,7 +49,17 @@ class PermissionService:
             return target_user.role == User.Role.EMPLOYEE
         return False
 
+    @staticmethod
+    def can_view_user_projects(user, target_user_id):
+        if PermissionService.is_admin(user):
+            return True
+        return str(getattr(user, "id", None)) == str(target_user_id)
+
     # ---------------- TEAM ---------------- #
+
+    @staticmethod
+    def can_create_team(user):
+        return PermissionService.is_admin(user) or PermissionService.is_manager(user)
 
     @staticmethod
     def can_manage_team(user, team):
@@ -37,6 +68,10 @@ class PermissionService:
         if PermissionService.is_manager(user):
             return team.manager_id == user.id
         return False
+
+    @staticmethod
+    def can_create_team_user_assignment(user, team):
+        return PermissionService.can_manage_team(user, team)
 
     @staticmethod
     def can_view_team(user, team):
@@ -57,6 +92,14 @@ class PermissionService:
         return False
 
     @staticmethod
+    def can_create_project_for_team_id(user, team_id):
+        if PermissionService.is_admin(user):
+            return True
+        if not PermissionService.is_manager(user):
+            return False
+        return Team.objects.filter(id=team_id, manager_id=user.id).exists()
+
+    @staticmethod
     def can_view_project(user, project):
         if PermissionService.is_admin(user):
             return True
@@ -67,14 +110,37 @@ class PermissionService:
         ).exists()
 
     @staticmethod
+    def can_view_project_for_id(user, project_id):
+        if PermissionService.is_admin(user):
+            return True
+        project = Project.objects.filter(id=project_id).only("id", "manager_id", "team_id").first()
+        if not project:
+            return False
+        if project.manager_id == getattr(user, "id", None):
+            return True
+        return Assignment.objects.filter(
+            project_id=project_id, user=user, is_active=True
+        ).exists()
+
+    @staticmethod
     def can_update_project(user, project):
         if PermissionService.is_admin(user):
             return True
         return project.manager_id == user.id
 
     @staticmethod
+    def can_update_project_for_id(user, project_id):
+        if PermissionService.is_admin(user):
+            return True
+        return Project.objects.filter(id=project_id, manager_id=user.id).exists()
+
+    @staticmethod
     def can_delete_project(user, project):
         return PermissionService.can_update_project(user, project)
+
+    @staticmethod
+    def can_delete_project_for_id(user, project_id):
+        return PermissionService.can_update_project_for_id(user, project_id)
 
     # ---------------- ASSIGNMENT ---------------- #
 
@@ -85,7 +151,19 @@ class PermissionService:
         return project.manager_id == user.id
 
     @staticmethod
+    def can_assign_user_for_project_id(user, project_id):
+        if PermissionService.is_admin(user):
+            return True
+        return Project.objects.filter(id=project_id, manager_id=user.id).exists()
+
+    @staticmethod
     def can_remove_user(user, assignment):
+        if PermissionService.is_admin(user):
+            return True
+        return assignment.project.manager_id == user.id
+
+    @staticmethod
+    def can_update_assignment(user, assignment):
         if PermissionService.is_admin(user):
             return True
         return assignment.project.manager_id == user.id
@@ -107,6 +185,22 @@ class PermissionService:
         return project.manager_id == user.id
 
     @staticmethod
+    def can_create_task_for_project_id(user, project_id):
+        if PermissionService.is_admin(user):
+            return True
+        return Project.objects.filter(id=project_id, manager_id=user.id).exists()
+
+    @staticmethod
+    def can_view_task_collection(user, project_id):
+        if PermissionService.is_admin(user):
+            return True
+        if Project.objects.filter(id=project_id, manager_id=user.id).exists():
+            return True
+        return Assignment.objects.filter(
+            project_id=project_id, user=user, is_active=True
+        ).exists()
+
+    @staticmethod
     def can_view_task(user, task):
         if PermissionService.is_admin(user):
             return True
@@ -117,6 +211,13 @@ class PermissionService:
         ).exists()
 
     @staticmethod
+    def can_view_task_for_id(user, task_id):
+        task = Task.objects.select_related("project").filter(id=task_id).only("id", "project_id", "assigned_to_id", "project__manager_id").first()
+        if not task:
+            return False
+        return PermissionService.can_view_task(user, task)
+
+    @staticmethod
     def can_update_task(user, task):
         if PermissionService.is_admin(user):
             return True
@@ -125,10 +226,23 @@ class PermissionService:
         return task.assigned_to_id == user.id
 
     @staticmethod
+    def can_update_task_for_id(user, task_id):
+        task = Task.objects.select_related("project").filter(id=task_id).only("id", "project_id", "assigned_to_id", "project__manager_id").first()
+        if not task:
+            return False
+        return PermissionService.can_update_task(user, task)
+
+    @staticmethod
     def can_delete_task(user, task):
         if PermissionService.is_admin(user):
             return True
         return task.project.manager_id == user.id
+
+    @staticmethod
+    def can_delete_task_for_id(user, task_id):
+        if PermissionService.is_admin(user):
+            return True
+        return Task.objects.select_related("project").filter(id=task_id, project__manager_id=user.id).exists()
 
     # ---------------- AUDIT ---------------- #
 

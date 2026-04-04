@@ -1,8 +1,4 @@
-from .models import User
+from core.permissions.services import PermissionService
 
 def can_assign_role(request_user, target_role):
-    if request_user.role == User.Role.ADMIN:
-        return True
-    if request_user.role == User.Role.MANAGER and target_role == User.Role.EMPLOYEE:
-        return True
-    return False
+    return PermissionService.can_assign_role(request_user, target_role)

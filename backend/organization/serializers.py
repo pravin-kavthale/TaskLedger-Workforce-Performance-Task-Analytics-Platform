@@ -11,7 +11,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
     def validate(self,attrs):
         request_user = self.context['request'].user
-        if request_user.role != "ADMIN":
+        if request_user.role != User.Role.ADMIN:
             raise serializers.ValidationError("Only Admin users can create a department.")
         return attrs
         

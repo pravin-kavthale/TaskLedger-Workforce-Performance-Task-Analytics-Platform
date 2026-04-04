@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from accounts.models import User
 from organization.models import Team
 from work.models import Assignment, Project, Task
+from core.permissions.services import PermissionService
 
 from .models import ActivityLog
 from .services import ActivityActionType, ActivityTargetType
@@ -42,13 +43,13 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         if not user.is_authenticated:
             return base_queryset.none()
 
-        if user.role == User.Role.ADMIN:
+        if PermissionService.is_admin(user):
             return self._admin_queryset(user)
 
-        if user.role == User.Role.MANAGER:
+        if PermissionService.is_manager(user):
             return self._manager_queryset(user)
 
-        if user.role == User.Role.EMPLOYEE:
+        if PermissionService.is_employee(user):
             return self._employee_queryset(user)
 
         return base_queryset.none()
