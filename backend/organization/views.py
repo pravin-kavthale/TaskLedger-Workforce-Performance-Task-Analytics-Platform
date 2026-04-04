@@ -1,9 +1,12 @@
 from rest_framework import viewsets, mixins
 
+# CRITICAL: NEVER bypass PermissionService for access control.
+
 from . models import Department, Team
 from . serializers import DepartmentSerializer, TeamSerializer, TeamAssignUserSerializer
 from core.permissions import TeamPermission, IsAdmin, IsAdminOrTeamManager
 from core.permissions.services import PermissionService
+from core.permissions.scoped_viewsets import BaseScopedViewSet
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
@@ -19,12 +22,15 @@ class DepartmentViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
-    viewsets.GenericViewSet
+    BaseScopedViewSet
 ):
     serializer_class = DepartmentSerializer
-    queryset = Department.objects.all()
+    queryset = Department.objects.none()
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        return PermissionService.scope_departments(self.request.user, Department.objects.all())
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -42,12 +48,12 @@ class TeamViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
-    viewsets.GenericViewSet
+    BaseScopedViewSet
 ):
     serializer_class = TeamSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [TeamPermission]
-    queryset = Team.objects.all()
+    queryset = Team.objects.none()
     
     def get_queryset(self):
         user = self.request.user

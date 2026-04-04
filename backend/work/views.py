@@ -1,10 +1,13 @@
 from rest_framework import viewsets, mixins
 
+# CRITICAL: NEVER bypass PermissionService for access control.
+
 from . models import Assignment, Project, Task
 from . serializers import AssignmentSerializer, ProjectMemberSerializer, ProjectSerializer, TaskCreateSerializer, TaskReadSerializer, TaskUpdateSerializer, UserProjectSerializer
 
 from core.permissions import ProjectPermission, AssignmentPermission, TaskPermission, UserProjectPermission
 from core.permissions.services import PermissionService
+from core.permissions.scoped_viewsets import BaseScopedViewSet
 
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -49,7 +52,7 @@ class ProjectViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
-    viewsets.GenericViewSet
+    BaseScopedViewSet
 ):
     serializer_class = ProjectSerializer
     authentication_classes = [JWTAuthentication]
@@ -107,7 +110,7 @@ class AssignmentViewSet(
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    BaseScopedViewSet
 ):
     serializer_class = AssignmentSerializer
     authentication_classes = [JWTAuthentication]
@@ -171,7 +174,7 @@ class AssignmentViewSet(
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
     
-class UserProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class UserProjectViewSet(mixins.ListModelMixin, BaseScopedViewSet):
     serializer_class = UserProjectSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [UserProjectPermission]
@@ -188,7 +191,7 @@ class UserProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             status=status,
         )
     
-class ProjectMemberViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class ProjectMemberViewSet(mixins.ListModelMixin, BaseScopedViewSet):
     serializer_class = ProjectMemberSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [ProjectPermission]
@@ -205,7 +208,7 @@ class ProjectMemberViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             status=status,
         )
 
-class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class ManagerProjectViewSet(mixins.ListModelMixin, BaseScopedViewSet):
     serializer_class = ProjectSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -225,7 +228,7 @@ class ManagerProjectViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             raise PermissionDenied("Managers can view only their own projects.")
         return Project.objects.filter(manager_id=user_pk_int)
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(BaseScopedViewSet):
     model = Task
     authentication_classes = [JWTAuthentication]
     permission_classes = [TaskPermission]

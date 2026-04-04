@@ -1,18 +1,20 @@
-from django.db.models import Q, TextField
+from django.db.models import TextField
 from django.db.models.functions import Cast
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from accounts.models import User
 from organization.models import Team
-from work.models import Assignment, Project, Task
+from work.models import Project, Task
 from core.permissions.services import PermissionService
+from core.permissions.scoped_viewsets import BaseScopedReadOnlyViewSet
 
 from .models import ActivityLog
-from .services import ActivityActionType, ActivityTargetType
+from .services import ActivityTargetType
 from .serializers import ActivityLogSerializer
+
+# CRITICAL: NEVER bypass PermissionService for access control.
 
 
 class ActivityLogPagination(PageNumberPagination):
@@ -21,7 +23,7 @@ class ActivityLogPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+class ActivityLogViewSet(BaseScopedReadOnlyViewSet):
     serializer_class = ActivityLogSerializer
     pagination_class = ActivityLogPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -38,37 +40,16 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        base_queryset = self._base_queryset()
-
         if not user.is_authenticated:
-            return base_queryset.none()
+            return ActivityLog.objects.none()
 
-        if PermissionService.is_admin(user):
-            return self._admin_queryset(user)
-
-        if PermissionService.is_manager(user):
-            return self._manager_queryset(user)
-
-        if PermissionService.is_employee(user):
-            return self._employee_queryset(user)
-
-        return base_queryset.none()
-
-    def _base_queryset(self):
-        return (
+        base_queryset = (
             ActivityLog.objects.select_related("user")
             .annotate(metadata_text=Cast("metadata", TextField()))
             .order_by("-created_at")
         )
 
-    def _admin_queryset(self, user):
-        return self._base_queryset()
-
-    def _manager_queryset(self, user):
-        return self._base_queryset().filter(self._manager_visibility_q(user))
-
-    def _employee_queryset(self, user):
-        return self._base_queryset().filter(self._employee_visibility_q(user))
+        return PermissionService.scope_activity_logs(user, base_queryset)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -119,43 +100,3 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             )
         return cache
 
-    def _manager_visibility_q(self, user):
-        project_ids = Project.objects.filter(Q(manager=user) | Q(team__manager=user)).values("id")
-        team_ids = Team.objects.filter(manager=user).values("id")
-        task_ids = Task.objects.filter(
-            Q(project__manager=user) | Q(project__team__manager=user)
-        ).values("id")
-
-        return (
-            Q(user=user)
-            | Q(target_type=ActivityTargetType.PROJECT, target_id__in=project_ids)
-            | Q(target_type=ActivityTargetType.TEAM, target_id__in=team_ids)
-            | Q(target_type=ActivityTargetType.TASK, target_id__in=task_ids)
-        )
-
-    def _employee_visibility_q(self, user):
-        task_ids = Task.objects.filter(assigned_to=user).values("id")
-
-        project_assignment_q = Q(action_type__in=[
-            ActivityActionType.USER_ASSIGNED_TO_PROJECT,
-            ActivityActionType.USER_REMOVED_FROM_PROJECT,
-            ActivityActionType.USER_ROLE_CHANGED_IN_PROJECT,
-        ]) & (
-            Q(metadata__user_id__new=user.id)
-            | Q(metadata__user_id__old=user.id)
-        )
-
-        team_membership_q = Q(action_type__in=[
-            ActivityActionType.USER_ADDED_TO_TEAM,
-            ActivityActionType.USER_REMOVED_FROM_TEAM,
-        ]) & (
-            Q(metadata__user_id__new=user.id)
-            | Q(metadata__user_id__old=user.id)
-        )
-
-        return (
-            Q(user=user)
-            | Q(target_type=ActivityTargetType.TASK, target_id__in=task_ids)
-            | project_assignment_q
-            | team_membership_q
-        )

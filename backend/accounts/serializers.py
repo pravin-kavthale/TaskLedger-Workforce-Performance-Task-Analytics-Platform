@@ -66,13 +66,11 @@ class UpdateUserSerializer(BaseUserRoleValidationMixin, serializers.ModelSeriali
         new_team = validated_data.get("team")
 
         if new_team is not None:
-            # Case 1: user has no team yet → allow admin or manager of target team
             if instance.team is None:
-                if not PermissionService.is_admin(current_user) and new_team.manager != current_user:
+                if not PermissionService.can_manage_team(current_user, new_team):
                     raise serializers.ValidationError(
                         "Only admin or manager of the target team can assign this user."
                     )
-            # Case 2: user already has a team → cant change team directly, must contact admin
             else:
                 if not PermissionService.is_admin(current_user):
                     raise serializers.ValidationError(
