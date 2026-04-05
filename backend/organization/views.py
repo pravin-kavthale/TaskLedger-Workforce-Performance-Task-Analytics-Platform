@@ -18,10 +18,6 @@ from audit.services import ActivityActionType, ActivityTargetType, log_activity
 
 
 class DepartmentViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
-    mixins.UpdateModelMixin,
     BaseScopedViewSet
 ):
     serializer_class = DepartmentSerializer
@@ -44,10 +40,6 @@ class DepartmentViewSet(
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
     
 class TeamViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
-    mixins.UpdateModelMixin,
     BaseScopedViewSet
 ):
     serializer_class = TeamSerializer

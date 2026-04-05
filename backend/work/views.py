@@ -48,10 +48,6 @@ def _delete_metadata(values):
 
 
 class ProjectViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
-    mixins.UpdateModelMixin,
     BaseScopedViewSet
 ):
     serializer_class = ProjectSerializer
@@ -106,10 +102,6 @@ class ProjectViewSet(
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
 
 class AssignmentViewSet(
-    mixins.CreateModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
     BaseScopedViewSet
 ):
     serializer_class = AssignmentSerializer
@@ -174,7 +166,7 @@ class AssignmentViewSet(
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method, detail="Delete operation is not allowed.")
     
-class UserProjectViewSet(mixins.ListModelMixin, BaseScopedViewSet):
+class UserProjectViewSet(BaseScopedViewSet):
     serializer_class = UserProjectSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [UserProjectPermission]
@@ -191,7 +183,7 @@ class UserProjectViewSet(mixins.ListModelMixin, BaseScopedViewSet):
             status=status,
         )
     
-class ProjectMemberViewSet(mixins.ListModelMixin, BaseScopedViewSet):
+class ProjectMemberViewSet(BaseScopedViewSet):
     serializer_class = ProjectMemberSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [ProjectPermission]
@@ -208,7 +200,7 @@ class ProjectMemberViewSet(mixins.ListModelMixin, BaseScopedViewSet):
             status=status,
         )
 
-class ManagerProjectViewSet(mixins.ListModelMixin, BaseScopedViewSet):
+class ManagerProjectViewSet(BaseScopedViewSet):
     serializer_class = ProjectSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
