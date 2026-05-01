@@ -15,7 +15,7 @@ The platform focuses on **structured task execution**, **event-driven time track
 
 ---
 
-## 🎯 Core Objectives
+## Core Objectives
 
 - Centralized task and project management
 - Accurate event-based tracking of work activity
@@ -25,7 +25,7 @@ The platform focuses on **structured task execution**, **event-driven time track
 
 ---
 
-## 🧱 High-Level Architecture
+## High-Level Architecture
 
 ### Frontend
 
@@ -56,7 +56,7 @@ The platform focuses on **structured task execution**, **event-driven time track
 
 ---
 
-# 🗂️ Core Modules & Implementation Status
+# Core Modules & Implementation Status
 
 ## **1. Accounts Module**
 
@@ -80,7 +80,7 @@ The platform focuses on **structured task execution**, **event-driven time track
 
 ---
 
-## **2. Organization Module** ✅
+## **2. Organization Module** 
 
 **Department & Team Management**
 
@@ -231,9 +231,9 @@ The platform focuses on **structured task execution**, **event-driven time track
 
 ---
 
-**Status: Production-ready core modules complete** 🎉
+**Status: Production-ready core modules complete**
 
-### ⚠️ Analytics (Planned)
+### Analytics (Planned)
 
 - Event-based aggregation
 - Project productivity metrics
@@ -260,7 +260,7 @@ The platform focuses on **structured task execution**, **event-driven time track
 
 ---
 
-## 🌐 GitHub Integration (Planned)
+## GitHub Integration (Planned)
 
 - Each user can **connect their GitHub account** to TaskLedger
 - OAuth-based authentication flow:
@@ -327,7 +327,7 @@ Permission enforcement is done with **DRF permission classes** (e.g. `IsAuthenti
 
 ---
 
-## 🖼️ Diagrams
+## Diagrams
 
 ### ER Diagram
 
@@ -345,7 +345,7 @@ _High-level module interactions between frontend, backend, and database componen
 
 ---
 
-## 🎨 Branding & UI Direction
+## Branding & UI Direction
 
 - **Logo:** Minimal, professional, productivity-focused
 - **Primary Theme:** Blue-based palette (trust, structure, analytics)
@@ -358,7 +358,7 @@ UI prototyping is handled using **Figma** with AI-assisted design tools.
 
 ---
 
-## 📌 Roadmap (High-Level)
+## Roadmap (High-Level)
 
 1. Backend core setup & authentication
 2. Department API implementation
@@ -369,7 +369,7 @@ UI prototyping is handled using **Figma** with AI-assisted design tools.
 
 ---
 
-## ⚠️ Scope & Intent
+## Scope & Intent
 
 This project is developed as a **serious portfolio / SaaS-style system**, not a tutorial or demo clone.
 
@@ -377,6 +377,6 @@ Features are added **only when they are properly designed, justified, and scalab
 
 ---
 
-## 📄 License
+## License
 
 This project is currently under development. License will be defined once the core system stabilizes.
