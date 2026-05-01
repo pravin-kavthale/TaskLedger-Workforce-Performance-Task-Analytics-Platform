@@ -28,8 +28,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 # SECURITY
 # ---------------------------
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = env("DEBUG", default=True)
-ALLOWED_HOSTS = []
+DEBUG = False  # Set to False for production, can be overridden by .env
+ALLOWED_HOSTS = ["*"]
 
 # ---------------------------
 # APPLICATION DEFINITION
@@ -191,7 +191,4 @@ SIMPLE_JWT = {
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI")
-
-
-
 
